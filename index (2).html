@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Context Engine · Construction demo</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+html, body { margin: 0; background: #E9EDF5; }
+body { padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(24px, env(safe-area-inset-bottom, 0px)); }
+.page { max-width: 1240px; margin: 0 auto; }
+#ce-tabs { display: none !important; }
+.ce-hd { padding-bottom: 20px !important; }
+.dash-skeleton { min-height: 60px; background: linear-gradient(90deg,#EEF1F7,#F7F8FB,#EEF1F7); border-radius: 8px; }
+</style>
+</head>
+<body>
+<main class="page">
+<style>
+#dash-root { --dash-gutter: 0; }
+.ce { --navy:#002D9C; --blue:#0040A0; --blue-50:#EEF3FF; --green:#1FAA59; --green-50:#E8F7EE; --amber:#B86E00; --amber-50:#FFF5E0; --amber-line:#F2B740; --red:#C62F2F; --red-50:#FDECEC; --ink:#1A1F36; --muted:#5B6385; --line:#E5E9F2; --bg:#F7F8FB; --card:#FFFFFF;
+  color-scheme: light; position: relative; background: var(--bg); color: var(--ink); font-family: Inter, var(--font-anthropic-sans, system-ui), system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 14px; line-height: 1.45; border-radius: 14px; overflow: hidden; font-variant-numeric: tabular-nums; }
+.ce * { box-sizing: border-box; }
+.ce [hidden] { display: none !important; }
+.ce b, .ce strong { font-weight: 600; }
+.ce button { font: inherit; color: inherit; }
+.ce-hd { background: var(--navy); color: #fff; padding: 20px 24px 0; }
+.ce-hd-top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-start; justify-content: space-between; }
+.ce-brand { display: flex; gap: 14px; align-items: center; min-width: 0; }
+.ce-logo { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.12); display: grid; place-items: center; flex: none; }
+.ce-product { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .78; font-weight: 600; }
+.ce-company { font-size: 22px; font-weight: 650; line-height: 1.2; }
+.ce-subtitle { font-size: 13.5px; opacity: .82; }
+.ce-hd-badges { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ce-pill { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 550; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); white-space: nowrap; }
+.ce-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(31,170,89,.25); flex: none; }
+@media (prefers-reduced-motion: no-preference) { .ce-dot.live { animation: ce-pulse 2s ease-in-out infinite; } }
+@keyframes ce-pulse { 50% { box-shadow: 0 0 0 6px rgba(31,170,89,.08); } }
+.ce-badge { background: #FFE9B8; color: #6B4500; border-color: #FFE9B8; }
+.ce-note { background: rgba(255,255,255,.08); }
+.ce-tabs { display: flex; gap: 4px; margin-top: 18px; overflow-x: auto; scrollbar-width: none; }
+.ce-tab { flex: 1 0 auto; min-width: 128px; border: 0; background: transparent; color: rgba(255,255,255,.78); padding: 10px 14px 12px; border-radius: 10px 10px 0 0; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
+.ce-tab .t1 { font-weight: 600; font-size: 13.5px; white-space: nowrap; }
+.ce-tab .t2 { font-size: 11.5px; opacity: .75; white-space: nowrap; display: flex; gap: 6px; align-items: center; }
+.ce-tab:hover:not([disabled]) { background: rgba(255,255,255,.08); color: #fff; }
+.ce-tab[aria-selected="true"] { background: var(--bg); color: var(--ink); }
+.ce-tab[aria-selected="true"] .t2 { color: var(--muted); opacity: 1; }
+.ce-tab[disabled] { cursor: not-allowed; opacity: .5; }
+.ce-q { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,.16); }
+.ce-body { padding: 18px 24px 28px; display: flex; flex-direction: column; gap: 22px; }
+.ce-filters { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+.ce-flabel { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-right: 8px; }
+.ce-seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+.ce-seg button { border: 0; background: transparent; padding: 6px 11px; border-radius: 7px; cursor: pointer; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.ce-seg button:hover { color: var(--ink); background: var(--bg); }
+.ce-seg button[aria-pressed="true"] { background: var(--blue); color: #fff; font-weight: 600; }
+.ce-fgroup { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.ce-story { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 0; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.ce-step { border: 0; background: transparent; text-align: left; padding: 12px 16px; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; border-right: 1px solid var(--line); }
+.ce-step:last-child { border-right: 0; }
+.ce-step:hover { background: var(--blue-50); }
+.ce-step .n { font-size: 11px; font-weight: 800; color: #fff; background: var(--blue); border-radius: 6px; padding: 2px 6px; letter-spacing: .04em; flex: none; margin-top: 1px; }
+.ce-step.hero .n { background: var(--green); }
+.ce-step .h { font-weight: 650; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+.ce-step .d { font-size: 12.5px; color: var(--muted); }
+.ce-sec { display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 12px; }
+.ce-eyebrow { font-size: 11.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--blue); }
+.ce-h2 { font-size: 18px; font-weight: 650; margin: 2px 0 0; }
+.ce-sub { color: var(--muted); font-size: 13px; }
+.ce-sec-hd { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 18px; align-items: flex-end; }
+.ce-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.ce-card-t { font-weight: 650; font-size: 15px; }
+.ce-card-n { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.ce-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 16px; }
+.ce-srcs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 168px), 1fr)); gap: 10px; }
+.ce-src { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ce-src-top { display: flex; gap: 9px; align-items: center; }
+.ce-src-ic { width: 28px; height: 28px; border-radius: 7px; background: var(--blue-50); color: var(--blue); display: grid; place-items: center; font-size: 11px; font-weight: 800; flex: none; }
+.ce-src-name { font-weight: 600; font-size: 13px; line-height: 1.25; }
+.ce-src-type { font-size: 11.5px; color: var(--muted); }
+.ce-src-rec { font-size: 13px; font-weight: 600; margin-top: 4px; }
+.ce-src-sync { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.ce-src-sync .ce-dot { width: 6px; height: 6px; box-shadow: none; }
+.ce-summary { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; color: var(--navy); background: var(--blue-50); border-radius: 10px; padding: 10px 14px; }
+.ce-token { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--blue); border: 1px solid #C9D6F5; background: #fff; border-radius: 6px; padding: 2px 7px; }
+.ce-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 178px), 1fr)); gap: 12px; }
+.ce-kpi { position: relative; text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-width: 0; transition: box-shadow .15s, border-color .15s; }
+.ce-kpi:hover, .ce-kpi:focus-visible { border-color: #9FB4E6; box-shadow: 0 4px 14px rgba(0,45,156,.10); outline: none; }
+.ce-kpi.warn { border-top: 3px solid var(--amber-line); background: linear-gradient(#FFFCF5, #fff 60%); }
+.ce-kpi.good { border-top: 3px solid var(--green); }
+.ce-kpi.neutral { border-top: 3px solid var(--line); }
+.ce-kpi-l { font-size: 12.5px; color: var(--muted); font-weight: 550; min-height: 2.5em; }
+.ce-kpi-v { font-size: 26px; font-weight: 680; letter-spacing: -.01em; line-height: 1.1; }
+.ce-kpi-d { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 12px; color: var(--muted); }
+.ce-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 650; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
+.ce-chip.good { color: #12773D; background: var(--green-50); }
+.ce-chip.warn { color: var(--amber); background: var(--amber-50); }
+.ce-chip.neutral { color: var(--muted); background: #EEF1F7; }
+.ce-chip.bad { color: var(--red); background: var(--red-50); }
+.ce-spark { height: 34px; }
+.ce-spark svg { display: block; }
+.ce-kpi-note { font-size: 11.5px; color: var(--muted); }
+.ce-steps { display: flex; gap: 3px; margin-top: 4px; }
+.ce-steps span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+.ce-steps span.on { background: var(--blue); }
+.ce-steps span.cur { background: var(--green); }
+.ce-steps-l { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); gap: 4px; }
+.ce-view { font-size: 12.5px; font-weight: 600; color: var(--blue); margin-top: auto; }
+.ce-hero { background: #fff; border: 1px solid #C9D6F5; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,45,156,.08); overflow: hidden; }
+.ce-hero-hd { background: linear-gradient(90deg, var(--navy), var(--blue)); color: #fff; padding: 18px 22px; display: flex; flex-wrap: wrap; gap: 10px 24px; justify-content: space-between; align-items: center; }
+.ce-hero-hd .ce-eyebrow { color: #A9C1FF; }
+.ce-hero-t { font-size: 22px; font-weight: 700; display: flex; gap: 10px; align-items: center; }
+.ce-hero-s { font-size: 13px; opacity: .85; }
+.ce-counts { display: flex; flex-wrap: wrap; gap: 8px; }
+.ce-count { background: rgba(255,255,255,.12); border-radius: 10px; padding: 6px 12px; font-size: 12px; line-height: 1.2; }
+.ce-count b { display: block; font-size: 18px; }
+.ce-sigs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 16px; padding: 18px; background: #FAFBFE; }
+.ce-sig { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: opacity .2s; min-width: 0; }
+.ce-sig.dim { opacity: .45; }
+.ce-sig.st-dismissed { opacity: .55; }
+.ce-sig.st-approved { border-color: #A6DDBD; }
+.ce-sig-top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; }
+.ce-sig-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ce-tag { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ce-risk { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: .05em; }
+.ce-risk.High { background: var(--red-50); color: var(--red); }
+.ce-risk.Elevated { background: var(--amber-50); color: var(--amber); }
+.ce-risk.Low { background: #EEF1F7; color: var(--muted); }
+.ce-risk.Upside { background: var(--green-50); color: #12773D; }
+.ce-status { font-size: 12px; font-weight: 650; padding: 3px 10px; border-radius: 999px; display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+.ce-status.awaiting { background: var(--amber-50); color: var(--amber); border: 1px solid #F6D58F; }
+.ce-status.approved { background: var(--green-50); color: #12773D; border: 1px solid #A6DDBD; }
+.ce-status.auto { background: var(--blue-50); color: var(--blue); border: 1px solid #C9D6F5; }
+.ce-status.dismissed { background: #EEF1F7; color: var(--muted); border: 1px solid var(--line); }
+.ce-sig-title { font-size: 16px; font-weight: 680; line-height: 1.3; }
+.ce-sig-text { color: #384063; font-size: 13.5px; }
+.ce-impact { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; padding: 10px 12px; border-radius: 10px; background: var(--amber-50); }
+.ce-impact.High { background: var(--red-50); }
+.ce-impact.Upside { background: var(--green-50); }
+.ce-impact-v { font-size: 24px; font-weight: 750; color: var(--amber); letter-spacing: -.01em; }
+.ce-impact.High .ce-impact-v { color: var(--red); }
+.ce-impact.Upside .ce-impact-v { color: #12773D; }
+.ce-impact-l { font-size: 12.5px; color: #4A5274; }
+.ce-lbl { font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+.ce-ev { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
+.ce-ev li { display: flex; gap: 8px; font-size: 12.5px; color: #384063; }
+.ce-ev li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #9FB4E6; flex: none; margin-top: 7px; }
+.ce-srcchips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.ce-srcchip { font-size: 11px; color: var(--blue); background: var(--blue-50); border-radius: 5px; padding: 1px 6px; }
+.ce-action { border: 1px dashed #9FB4E6; background: #F6F9FF; border-radius: 10px; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; }
+.ce-action-ic { width: 26px; height: 26px; border-radius: 7px; background: var(--blue); color: #fff; display: grid; place-items: center; flex: none; }
+.ce-action-t { font-weight: 600; font-size: 13.5px; }
+.ce-action textarea { width: 100%; font: inherit; font-weight: 600; font-size: 13.5px; border: 1px solid #9FB4E6; border-radius: 6px; padding: 6px 8px; resize: vertical; min-height: 56px; color: var(--ink); background: #fff; }
+.ce-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ce-btn { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 7px 14px; font-weight: 600; font-size: 13px; cursor: pointer; }
+.ce-btn:hover { border-color: #9FB4E6; }
+.ce-btn.approve { background: var(--green); border-color: var(--green); color: #fff; }
+.ce-btn.approve:hover { background: #18934C; }
+.ce-btn.ghost { border-color: transparent; color: var(--muted); }
+.ce-btn.link { border: 0; padding: 4px 6px; color: var(--blue); background: transparent; }
+.ce-done { font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ce-hero-ft { display: flex; gap: 10px; align-items: center; padding: 12px 22px; border-top: 1px solid var(--line); font-size: 13px; color: #384063; background: #fff; }
+.ce-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ce-table th { text-align: left; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 8px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ce-table td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.ce-table th.num, .ce-table td.num { text-align: right; }
+.ce-table tr.sel td { background: var(--blue-50); }
+.ce-table tr.total td { font-weight: 700; border-bottom: 0; border-top: 2px solid var(--line); }
+.ce-table td:first-child { font-weight: 600; min-width: 150px; }
+.ce-tablewrap { overflow-x: auto; margin-top: 10px; }
+.ce-best td { background: #F3FBF6; }
+.ce-calls-n { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 12px; flex-wrap: wrap; }
+.ce-calls-n b { font-size: 30px; font-weight: 720; letter-spacing: -.01em; }
+.ce-bars { display: flex; flex-direction: column; gap: 9px; }
+.ce-bar { display: grid; grid-template-columns: minmax(90px, 34%) 1fr 44px; gap: 10px; align-items: center; font-size: 13px; }
+.ce-bar-track { height: 12px; background: #EEF1F7; border-radius: 6px; overflow: hidden; }
+.ce-bar-fill { height: 100%; background: var(--blue); border-radius: 6px; }
+.ce-bar:first-child .ce-bar-fill { background: var(--navy); }
+.ce-bar-p { text-align: right; font-weight: 650; }
+.ce-listen { margin-top: 14px; display: inline-flex; gap: 8px; align-items: center; border: 1px solid #C9D6F5; background: var(--blue-50); color: var(--blue); border-radius: 999px; padding: 6px 14px 6px 10px; font-weight: 650; font-size: 13px; cursor: pointer; }
+.ce-listen:hover { background: #E1EAFF; }
+.ce-timeline { display: flex; flex-direction: column; gap: 0; margin-top: 12px; }
+.ce-tl { display: grid; grid-template-columns: 70px 18px 1fr; gap: 10px; }
+.ce-tl-day { font-size: 12px; font-weight: 700; color: var(--blue); text-align: right; padding-top: 1px; }
+.ce-tl-rail { position: relative; display: flex; justify-content: center; }
+.ce-tl-rail::before { content: ""; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--line); }
+.ce-tl:first-child .ce-tl-rail::before { top: 8px; }
+.ce-tl:last-child .ce-tl-rail::before { bottom: calc(100% - 8px); }
+.ce-tl-dot { position: relative; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid var(--blue); margin-top: 3px; }
+.ce-tl.now .ce-tl-dot { background: var(--green); border-color: var(--green); box-shadow: 0 0 0 4px rgba(31,170,89,.18); }
+.ce-tl.done .ce-tl-dot { background: var(--blue); }
+.ce-tl-body { padding-bottom: 12px; }
+.ce-tl-t { font-weight: 650; font-size: 13.5px; }
+.ce-tl-s { font-size: 12.5px; color: var(--muted); }
+.ce-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 10px; margin-top: 4px; }
+.ce-stat { background: var(--blue-50); border-radius: 10px; padding: 10px 12px; }
+.ce-stat b { display: block; font-size: 22px; font-weight: 720; color: var(--navy); }
+.ce-stat span { font-size: 12px; color: #384063; }
+.ce-fc { position: relative; margin-top: 8px; min-height: 250px; }
+.ce-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+.ce-legend i { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid var(--blue); vertical-align: middle; margin-right: 6px; }
+.ce-legend i.b { border-top: 2px dashed #7A84A8; }
+.ce-legend i.s { height: 10px; border: 0; background: rgba(242,183,64,.3); }
+.ce-tip { position: absolute; pointer-events: none; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 18px rgba(26,31,54,.14); padding: 6px 10px; font-size: 12px; white-space: nowrap; z-index: 2; }
+.ce-tip .w { color: var(--muted); margin-bottom: 2px; }
+.ce-terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 16px; }
+.ce-term-n { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+.ce-defs { display: flex; flex-direction: column; gap: 6px; }
+.ce-def { display: grid; grid-template-columns: minmax(110px, 36%) 1fr; gap: 10px; font-size: 13px; padding: 7px 10px; border-radius: 8px; background: #FAFBFE; border: 1px solid var(--line); }
+.ce-def-sys { font-weight: 650; color: var(--blue); }
+.ce-def-txt { color: #384063; position: relative; }
+.ce-arrow { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin: 10px 0 8px; }
+.ce-arrow::before, .ce-arrow::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+.ce-std { background: var(--navy); color: #fff; border-radius: 10px; padding: 12px 14px; }
+.ce-std .ce-lbl { color: #A9C1FF; margin-bottom: 3px; }
+.ce-std-t { font-weight: 650; font-size: 14px; }
+.ce-std-w { font-size: 12px; opacity: .8; margin-top: 4px; }
+.ce-drill { border-left: 4px solid var(--blue); }
+.ce-crumbs { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; margin: 12px 0 14px; }
+.ce-crumb { background: #FAFBFE; border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px; min-width: 0; }
+.ce-crumb.last { background: var(--blue-50); border-color: #C9D6F5; }
+.ce-crumb-l { font-size: 11px; color: var(--muted); }
+.ce-crumb-v { font-weight: 650; font-size: 13px; }
+.ce-crumb-s { font-size: 11.5px; color: var(--amber); font-weight: 600; }
+.ce-sep { align-self: center; color: #9FB4E6; font-weight: 700; }
+.ce-drill-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.ce-quote { background: #FAFBFE; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.ce-quote-hd { display: flex; gap: 10px; align-items: center; }
+.ce-play { width: 30px; height: 30px; border-radius: 50%; background: var(--blue); display: grid; place-items: center; flex: none; }
+.ce-wave { display: flex; gap: 2px; align-items: center; height: 26px; flex: 1; min-width: 0; overflow: hidden; }
+.ce-wave span { width: 3px; border-radius: 2px; background: #9FB4E6; flex: none; }
+.ce-wave span.hi { background: var(--blue); }
+.ce-quote-t { font-size: 14.5px; font-style: italic; color: var(--ink); border-left: 3px solid var(--amber-line); padding-left: 10px; }
+.ce-quote-m { font-size: 12px; color: var(--muted); }
+.ce-recmeta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.ce-scrim { position: absolute; inset: 0; background: rgba(26,31,54,.28); z-index: 5; }
+.ce-drawer { position: absolute; right: 0; width: min(560px, 100%); background: #fff; z-index: 6; border-radius: 14px 0 0 14px; box-shadow: -10px 0 40px rgba(26,31,54,.22); padding: 18px 20px 20px; border-left: 4px solid var(--blue); }
+@media (prefers-reduced-motion: no-preference) { .ce-drawer { animation: ce-slide .25s ease-out; } }
+@keyframes ce-slide { from { transform: translateX(40px); opacity: 0; } }
+.ce-drawer-x { position: absolute; top: 12px; right: 12px; border: 0; background: #EEF1F7; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 16px; }
+.ce-ph { color: var(--muted); }
+.ce-empty { padding: 40px; text-align: center; color: var(--muted); }
+.ce-fail { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: 13px; padding: 40px; }
+.ce-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--red); }
+.ce [data-dash-source-state=refreshing] { opacity: .5; }
+@media (max-width: 640px) {
+  .ce-hd { padding: 16px 16px 0; } .ce-body { padding: 16px 16px 24px; }
+  .ce-company { font-size: 19px; } .ce-step { border-right: 0; border-bottom: 1px solid var(--line); }
+  .ce-def { grid-template-columns: 1fr; gap: 2px; } .ce-tl { grid-template-columns: 56px 18px 1fr; }
+}
+</style>
+
+<div class="ce" id="ce">
+  <header class="ce-hd" id="header">
+    <div class="ce-hd-top">
+      <div class="ce-brand">
+        <div class="ce-logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="6" r="1.6"/><circle cx="20" cy="6" r="1.6"/><circle cx="4" cy="18" r="1.6"/><circle cx="20" cy="18" r="1.6"/><path d="M5.4 6.9 9.5 10.4M18.6 6.9l-4.1 3.5M5.4 17.1l4.1-3.5M18.6 17.1l-4.1-3.5"/></svg></div>
+        <div>
+          <div class="ce-product">The Context Engine</div>
+          <div class="ce-company" id="ce-company">—</div>
+          <div class="ce-subtitle" id="ce-subtitle">—</div>
+        </div>
+      </div>
+      <div class="ce-hd-badges">
+        <span class="ce-pill"><span class="ce-dot live"></span><span id="ce-synced">Live</span></span>
+        <span class="ce-pill ce-note" id="ce-note" hidden></span>
+        <span class="ce-pill ce-badge">Demo data · fictional company</span>
+      </div>
+    </div>
+    <nav class="ce-tabs" id="ce-tabs" role="tablist" aria-label="Industry"></nav>
+  </header>
+
+  <div class="ce-body">
+    <div class="ce-filters" id="filters">
+      <div class="ce-fgroup"><span class="ce-flabel">Segment</span><div class="ce-seg" id="ce-segs" role="group" aria-label="Segment"></div></div>
+      <div class="ce-fgroup"><span class="ce-flabel">Period</span><div class="ce-seg" id="ce-periods" role="group" aria-label="Period"></div></div>
+    </div>
+
+    <div class="ce-story" id="story">
+      <button class="ce-step" data-go="connect"><span class="n">01</span><span><span class="h">Connect</span><br><span class="d">Plugs into any system you run with an API token.</span></span></button>
+      <button class="ce-step" data-go="understand"><span class="n">02</span><span><span class="h">Understand</span><br><span class="d">One data layer. AI cleans it up, calls included, and settles conflicting definitions.</span></span></button>
+      <button class="ce-step" data-go="see"><span class="n">03</span><span><span class="h">See</span><br><span class="d">Live scorecards. Every number traces back to its source.</span></span></button>
+      <button class="ce-step hero" data-go="act"><span class="n">04</span><span><span class="h">Act</span><br><span class="d">Agents size each risk in dollars and stage the next step. You approve.</span></span></button>
+    </div>
+
+    <section class="ce-sec" id="connect">
+      <div class="ce-sec-hd"><div><div class="ce-eyebrow">01 · Connect</div><h2 class="ce-h2">Plugged into the systems already in use</h2></div><span class="ce-token">Connected via API token · no migration</span></div>
+      <div class="ce-srcs" id="ce-srcs"></div>
+      <div class="ce-summary" id="ce-connect-sum">—</div>
+    </section>
+
+    <section class="ce-sec" id="see">
+      <div class="ce-sec-hd"><div><div class="ce-eyebrow">03 · See</div><h2 class="ce-h2">Live scorecard</h2></div><span class="ce-sub" id="ce-see-sub">Click any number to trace it to its source.</span></div>
+      <div class="ce-kpis" id="ce-kpis"></div>
+    </section>
+
+    <section class="ce-sec" id="act">
+      <div class="ce-hero">
+        <div class="ce-hero-hd">
+          <div>
+            <div class="ce-eyebrow">04 · Act</div>
+            <div class="ce-hero-t">Signal <svg width="22" height="14" viewBox="0 0 22 14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7h19M14 1l6 6-6 6"/></svg> Playbook</div>
+            <div class="ce-hero-s">Agents watch every system, put a dollar figure on each risk, and stage the next step. A person approves it.</div>
+          </div>
+          <div class="ce-counts" id="ce-counts"></div>
+        </div>
+        <div class="ce-sigs" id="ce-sigs"></div>
+        <div class="ce-hero-ft"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0040A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span><b>Human-in-the-loop:</b> every action requires approval unless auto-run is enabled.</span></div>
+      </div>
+    </section>
+
+    <div class="ce-grid2">
+      <div class="ce-card" id="econ"><div class="ce-card-t" id="ce-econ-t">—</div><div class="ce-card-n" id="ce-econ-n"></div><div id="ce-econ"></div></div>
+      <div class="ce-card" id="calls">
+        <div class="ce-card-t">Call intelligence</div><div class="ce-card-n">Every recorded call transcribed, tagged and linked to the record it is about.</div>
+        <div class="ce-calls-n"><b id="ce-calls-n">—</b><span class="ce-sub" id="ce-calls-l"></span></div>
+        <div class="ce-lbl" id="ce-themes-t">Top themes</div>
+        <div class="ce-bars" id="ce-themes"></div>
+        <button class="ce-listen" id="ce-listen"><svg width="22" height="16" viewBox="0 0 22 16" fill="#0040A0"><rect x="0" y="6" width="2" height="4" rx="1"/><rect x="4" y="3" width="2" height="10" rx="1"/><rect x="8" y="0" width="2" height="16" rx="1"/><rect x="12" y="4" width="2" height="8" rx="1"/><rect x="16" y="2" width="2" height="12" rx="1"/><rect x="20" y="6" width="2" height="4" rx="1"/></svg>Listen to example →</button>
+      </div>
+    </div>
+
+    <div class="ce-grid2">
+      <div class="ce-card" id="bench"><div class="ce-card-t" id="ce-bench-t">Segment benchmarking</div><div class="ce-card-n" id="ce-bench-n"></div><div class="ce-tablewrap" id="ce-bench"></div></div>
+      <div class="ce-card" id="forecast"><div class="ce-card-t" id="ce-fc-t">—</div><div class="ce-card-n" id="ce-fc-n"></div><div class="ce-legend" id="ce-fc-leg"></div><div class="ce-fc" id="ce-fc"></div></div>
+    </div>
+
+    <section class="ce-sec" id="understand">
+      <div class="ce-sec-hd"><div><div class="ce-eyebrow">02 · Understand</div><h2 class="ce-h2">Definitions reconciled</h2></div><span class="ce-sub">Each system defines terms its own way. The Context Engine settles them on one standard.</span></div>
+      <div class="ce-terms" id="ce-terms"></div>
+      <div class="ce-summary" id="ce-defs-sum">—</div>
+    </section>
+
+    <section class="ce-sec" id="drill">
+      <div class="ce-sec-hd"><div><div class="ce-eyebrow">Drill to source</div><h2 class="ce-h2">From the scorecard to a single record</h2></div><span class="ce-sub">Example trace, shown open. Any KPI tile opens the same drawer.</span></div>
+      <div class="ce-card ce-drill" id="ce-drill"></div>
+    </section>
+  </div>
+  <div id="ce-overlay"></div>
+</div>
+
+<script>
+/* Standalone construction demo: data embedded, no Claude runtime needed. */
+const DEMO_ROWS = [{"section": "meta", "id": "meta", "company": "Harborview Services Group", "subtitle": "$148M revenue · 3 divisions · 42 locations", "synced": "Live · synced 2 min ago", "connect_summary": "7 systems connected · 0 reports rebuilt by hand this quarter", "act_total": "$4.0M", "act_total_label": "Revenue and margin at stake", "approver": "Division GM", "econ_kind": "table", "econ_title": "Channel attribution", "econ_note": "Which channels actually win work, joined across CRM, phones and the ledger. Quarter to date.", "econ_cols": [{"field": "name", "label": "Channel"}, {"field": "spend", "label": "Spend QTD"}, {"field": "won", "label": "Won bids"}, {"field": "rev", "label": "Revenue"}, {"field": "cac", "label": "CAC"}], "calls_count": "3,912", "calls_label": "sales, estimating and field calls analyzed", "themes_title": "Why bids are lost", "bench_title": "Division benchmarking", "bench_note": "Quarter to date. Click a row to filter the page.", "bench_cols": [{"field": "name", "label": "Division"}, {"field": "rev", "label": "Revenue QTD"}, {"field": "gm", "label": "GM"}, {"field": "tts", "label": "Time-to-start"}, {"field": "risk", "label": "Risk"}], "fc_title": "Demand vs. crew capacity · Specialty Retail Install", "fc_note": "Booked and forecast crew hours as a share of available crew hours. Shaded: weeks 47–49 at 118%.", "fc_a": "Demand", "fc_b": "Crew capacity", "shade_label": "Over capacity", "fc_prefix": "", "fc_suffix": "%", "fc_dec": 0, "defs_summary": "14 definitions reconciled across 7 systems", "drill_kpi": "k2", "drill_title": "Gross margin → Facilities Maintenance → Midwest → Job #FM-2291", "rec_title": "Job #FM-2291 · vendor invoice lines vs. bid", "rec_cols": [{"field": "item", "label": "Invoice line"}, {"field": "bid", "label": "Bid rate"}, {"field": "billed", "label": "Billed"}, {"field": "chg", "label": "Change"}], "rec_meta": "Source: QuickBooks bill #B-77104 · Midwest mechanical subcontractor · matched to Procore job FM-2291", "quote_text": "“We’re going to have to move to the new rate starting this month.”", "quote_speaker": "Subcontractor account rep", "quote_meta": "Inbound vendor call · Sep 3 · 6 min · Aircall, auto-transcribed", "quote_note": "Tagged: price change · never logged in the CRM until The Context Engine linked it to the job"}, {"section": "seg", "id": "seg:all", "key": "all", "label": "All", "detail": "$148M revenue · 3 divisions · 42 locations"}, {"section": "seg", "id": "seg:cbo", "key": "cbo", "label": "Commercial Build-Out", "detail": "$64M"}, {"section": "seg", "id": "seg:fm", "key": "fm", "label": "Facilities Maintenance", "detail": "$51M"}, {"section": "seg", "id": "seg:sri", "key": "sri", "label": "Specialty Retail Install", "detail": "$33M"}, {"section": "src", "id": "src1", "name": "HubSpot", "type": "CRM", "records": "18,420 contacts", "sync": "Synced 2 min ago"}, {"section": "src", "id": "src2", "name": "Aircall", "type": "Phones · call recordings", "records": "3,912 calls", "sync": "Synced 1 min ago"}, {"section": "src", "id": "src3", "name": "Procore", "type": "Project management", "records": "286 active projects", "sync": "Synced 3 min ago"}, {"section": "src", "id": "src4", "name": "QuickBooks", "type": "Accounting", "records": "41,200 transactions", "sync": "Synced 5 min ago"}, {"section": "src", "id": "src5", "name": "Email", "type": "Shared inboxes", "records": "22,600 threads", "sync": "Synced 2 min ago"}, {"section": "src", "id": "src6", "name": "Google Sheets", "type": "Estimating & scheduling trackers", "records": "37 trackers", "sync": "Synced 8 min ago"}, {"section": "src", "id": "src7", "name": "Airtable", "type": "Field ops", "records": "9,140 records", "sync": "Synced 4 min ago"}, {"section": "kpi", "id": "kpi:k1:all:week", "kpi": "k1", "seg": "all", "period": "week", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last week", "value": "$2.9M", "delta": "+7.9%", "tone": "good", "spark": [2626917.623, 2636672.5783, 2772482.5391, 2753383.0057, 2723898.7295, 2710676.098, 2844406.1574, 2844015.2476, 2824761.6653, 2847028.6998, 2869130.1279, 2901600.0]}, {"section": "kpi", "id": "kpi:k1:all:mtd", "kpi": "k1", "seg": "all", "period": "mtd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. same point last month", "value": "$11.5M", "delta": "+6.7%", "tone": "good", "spark": [10647726.8179, 10967956.7485, 10566906.4554, 10720812.0852, 10825597.6506, 10791995.1139, 11329401.2938, 11148471.229, 11498452.2218, 11182429.4548, 11274522.5472, 11532000.0]}, {"section": "kpi", "id": "kpi:k1:all:qtd", "kpi": "k1", "seg": "all", "period": "qtd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last quarter", "value": "$37.2M", "delta": "+6.1%", "tone": "good", "spark": [34419642.827, 35627240.1818, 34972187.7077, 35669095.2122, 34960029.5842, 35363434.8888, 35554528.0694, 35852157.2714, 36176931.3314, 37364036.8844, 36829350.3595, 37200000.0]}, {"section": "kpi", "id": "kpi:k1:all:ytd", "kpi": "k1", "seg": "all", "period": "ytd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last year to date", "value": "$132M", "delta": "+5.2%", "tone": "good", "spark": [122086463.0561, 128214817.4398, 124318261.2544, 123987160.6449, 125546726.6734, 129316579.6937, 128540992.4935, 129996603.1778, 128117799.0057, 130211773.0097, 130784382.2772, 132060000.0]}, {"section": "kpi", "id": "kpi:k1:cbo:week", "kpi": "k1", "seg": "cbo", "period": "week", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last week", "value": "$1.3M", "delta": "+9.6%", "tone": "good", "spark": [1134337.1762, 1161314.6213, 1172315.7057, 1187991.3847, 1179506.6704, 1197670.4956, 1212494.5342, 1226320.4501, 1226184.3308, 1231890.1414, 1245194.4312, 1255800.0]}, {"section": "kpi", "id": "kpi:k1:cbo:mtd", "kpi": "k1", "seg": "cbo", "period": "mtd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. same point last month", "value": "$5.0M", "delta": "+8.1%", "tone": "good", "spark": [4649167.7735, 4471150.1679, 4586874.2011, 4592832.9967, 4671378.6207, 4844558.2969, 4823271.0946, 4902438.8613, 4984428.1095, 5010763.8237, 4922771.5874, 4991000.0]}, {"section": "kpi", "id": "kpi:k1:cbo:qtd", "kpi": "k1", "seg": "cbo", "period": "qtd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last quarter", "value": "$16.1M", "delta": "+7.4%", "tone": "good", "spark": [14942276.0076, 15527308.0779, 14930982.0385, 14813937.9707, 15397302.5756, 15610952.5551, 15294633.2895, 15401935.4694, 15409337.196, 15872245.2222, 16027855.8583, 16100000.0]}, {"section": "kpi", "id": "kpi:k1:cbo:ytd", "kpi": "k1", "seg": "cbo", "period": "ytd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last year to date", "value": "$57.2M", "delta": "+6.3%", "tone": "good", "spark": [55386204.8065, 54498891.4575, 53936791.3863, 54170348.0002, 55197265.7552, 53835602.9115, 54435706.6651, 56804015.1727, 56362311.3713, 56951508.6778, 56193330.5544, 57155000.0]}, {"section": "kpi", "id": "kpi:k1:fm:week", "kpi": "k1", "seg": "fm", "period": "week", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last week", "value": "$1.0M", "delta": "+4.2%", "tone": "good", "spark": [983983.3536, 956257.4306, 952587.2512, 972115.8024, 986680.0206, 966912.2776, 985249.5099, 989869.4823, 987200.1989, 993055.7923, 991008.2128, 1006200.0]}, {"section": "kpi", "id": "kpi:k1:fm:mtd", "kpi": "k1", "seg": "fm", "period": "mtd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. same point last month", "value": "$4.0M", "delta": "+3.5%", "tone": "good", "spark": [3855649.8418, 3846314.5475, 3786910.3702, 3867398.6077, 3859844.7362, 3997098.1269, 3995542.5547, 3916787.803, 3975226.2376, 3936470.9685, 3995349.4577, 3999000.0]}, {"section": "kpi", "id": "kpi:k1:fm:qtd", "kpi": "k1", "seg": "fm", "period": "qtd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last quarter", "value": "$12.9M", "delta": "+3.2%", "tone": "good", "spark": [12184975.6461, 12769010.3985, 12525251.1699, 12799049.8293, 12717448.4329, 12745715.4925, 12925227.4969, 12565420.0435, 12641836.9551, 12880962.5668, 12884267.8472, 12900000.0]}, {"section": "kpi", "id": "kpi:k1:fm:ytd", "kpi": "k1", "seg": "fm", "period": "ytd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last year to date", "value": "$45.8M", "delta": "+2.7%", "tone": "good", "spark": [45125549.699, 45179166.6533, 44656065.3985, 45194457.5949, 44285247.1389, 44683752.3099, 45944767.2045, 45683318.2909, 45753301.6739, 45618004.6112, 45492919.7284, 45795000.0]}, {"section": "kpi", "id": "kpi:k1:sri:week", "kpi": "k1", "seg": "sri", "period": "week", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last week", "value": "$640K", "delta": "+10.8%", "tone": "good", "spark": [603403.1018, 581728.5467, 563112.7777, 575462.687, 614355.1377, 606256.7004, 614080.7791, 622762.0892, 633691.6958, 627957.4313, 626930.4841, 639600.0]}, {"section": "kpi", "id": "kpi:k1:sri:mtd", "kpi": "k1", "seg": "sri", "period": "mtd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. same point last month", "value": "$2.5M", "delta": "+9.1%", "tone": "good", "spark": [2266099.8504, 2290428.6631, 2420709.6733, 2426802.3762, 2315288.5417, 2364366.4257, 2410294.1143, 2451597.2214, 2442518.6367, 2490818.7966, 2495182.1735, 2542000.0]}, {"section": "kpi", "id": "kpi:k1:sri:qtd", "kpi": "k1", "seg": "sri", "period": "qtd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last quarter", "value": "$8.2M", "delta": "+8.3%", "tone": "good", "spark": [7434435.1302, 7496800.6701, 7454838.4137, 7869733.4177, 7620337.3791, 7872909.6686, 7769747.9256, 8104397.1771, 7884064.1087, 8054141.9908, 8014877.6766, 8200000.0]}, {"section": "kpi", "id": "kpi:k1:sri:ytd", "kpi": "k1", "seg": "sri", "period": "ytd", "label": "Revenue QTD", "src": "QuickBooks + Procore", "record": "Revenue roll-up · Q4 to date", "define": "Recognized revenue including approved change orders.", "trace": "Invoices from QuickBooks matched to Procore contracts and change orders.", "cmp": "vs. last year to date", "value": "$29.1M", "delta": "+7.1%", "tone": "good", "spark": [28055131.2449, 27929521.3112, 28309637.3486, 27093781.7899, 28166932.0373, 27515025.6449, 27699229.1297, 27969245.3137, 28947643.3597, 28221158.1011, 28383538.6646, 29110000.0]}, {"section": "kpi", "id": "kpi:k2:all:week", "kpi": "k2", "seg": "all", "period": "week", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last week", "value": "31.8%", "delta": "–0.6 pts", "tone": "warn", "spark": [32.6913, 32.4617, 31.752, 32.5865, 32.5174, 31.8977, 31.9514, 32.041, 32.1479, 31.5654, 31.566, 31.7768]}, {"section": "kpi", "id": "kpi:k2:all:mtd", "kpi": "k2", "seg": "all", "period": "mtd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. same point last month", "value": "31.6%", "delta": "–1.1 pts", "tone": "warn", "spark": [31.8538, 32.4476, 31.8153, 32.2621, 32.2818, 32.7879, 31.7018, 32.2907, 31.8508, 31.4523, 31.2428, 31.557]}, {"section": "kpi", "id": "kpi:k2:all:qtd", "kpi": "k2", "seg": "all", "period": "qtd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last quarter", "value": "31.4%", "delta": "–1.8 pts", "tone": "warn", "spark": [32.7096, 32.6124, 32.1776, 33.2176, 32.1994, 32.4335, 31.6258, 31.7053, 31.4584, 31.7358, 31.2888, 31.4]}, {"section": "kpi", "id": "kpi:k2:all:ytd", "kpi": "k2", "seg": "all", "period": "ytd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last year to date", "value": "31.1%", "delta": "–2.1 pts", "tone": "warn", "spark": [32.7689, 32.8314, 33.2019, 32.8589, 32.9661, 32.01, 31.8593, 31.4639, 31.7704, 31.7547, 31.3816, 31.1488]}, {"section": "kpi", "id": "kpi:k2:cbo:week", "kpi": "k2", "seg": "cbo", "period": "week", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last week", "value": "34.3%", "delta": "–0.2 pts", "tone": "warn", "spark": [33.8548, 34.0861, 34.271, 33.9056, 33.9788, 34.3597, 34.7645, 34.3238, 34.6375, 34.4766, 34.603, 34.3068]}, {"section": "kpi", "id": "kpi:k2:cbo:mtd", "kpi": "k2", "seg": "cbo", "period": "mtd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. same point last month", "value": "34.1%", "delta": "–0.4 pts", "tone": "warn", "spark": [35.1252, 34.9345, 34.4855, 34.7566, 34.3747, 34.0923, 33.9837, 34.5752, 33.7764, 34.5365, 33.9393, 34.0695]}, {"section": "kpi", "id": "kpi:k2:cbo:qtd", "kpi": "k2", "seg": "cbo", "period": "qtd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last quarter", "value": "33.9%", "delta": "–0.6 pts", "tone": "warn", "spark": [34.9407, 34.8846, 34.9522, 34.3792, 33.7286, 34.3376, 34.0152, 33.9049, 34.3301, 33.8402, 34.3455, 33.9]}, {"section": "kpi", "id": "kpi:k2:cbo:ytd", "kpi": "k2", "seg": "cbo", "period": "ytd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last year to date", "value": "33.6%", "delta": "–0.7 pts", "tone": "warn", "spark": [34.5904, 34.7746, 33.6429, 34.8376, 33.6472, 34.5403, 34.3378, 34.033, 33.4576, 33.936, 33.956, 33.6288]}, {"section": "kpi", "id": "kpi:k2:fm:week", "kpi": "k2", "seg": "fm", "period": "week", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last week", "value": "28.5%", "delta": "–1.4 pts", "tone": "warn", "spark": [30.4984, 30.1234, 29.2477, 30.2753, 29.8822, 29.645, 29.169, 28.8843, 29.4672, 28.3848, 28.3513, 28.5384]}, {"section": "kpi", "id": "kpi:k2:fm:mtd", "kpi": "k2", "seg": "fm", "period": "mtd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. same point last month", "value": "28.3%", "delta": "–2.3 pts", "tone": "warn", "spark": [31.7159, 31.4255, 30.808, 29.6203, 30.4112, 30.3345, 29.9539, 29.8905, 29.3813, 29.4788, 28.0997, 28.341]}, {"section": "kpi", "id": "kpi:k2:fm:qtd", "kpi": "k2", "seg": "fm", "period": "qtd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last quarter", "value": "28.2%", "delta": "–3.9 pts", "tone": "warn", "spark": [33.2969, 31.0669, 30.6962, 31.0039, 32.0971, 30.9422, 29.2671, 29.054, 28.7466, 28.7771, 28.2165, 28.2]}, {"section": "kpi", "id": "kpi:k2:fm:ytd", "kpi": "k2", "seg": "fm", "period": "ytd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last year to date", "value": "28.0%", "delta": "–4.5 pts", "tone": "warn", "spark": [33.7068, 31.2715, 30.4368, 32.3134, 32.4251, 31.3895, 31.1917, 30.3595, 29.411, 29.3786, 28.6912, 27.9744]}, {"section": "kpi", "id": "kpi:k2:sri:week", "kpi": "k2", "seg": "sri", "period": "week", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last week", "value": "32.0%", "delta": "–0.1 pts", "tone": "warn", "spark": [31.8809, 32.2047, 31.7874, 32.5872, 32.0188, 32.1392, 31.7517, 32.1591, 31.8537, 32.1098, 31.8765, 31.9792]}, {"section": "kpi", "id": "kpi:k2:sri:mtd", "kpi": "k2", "seg": "sri", "period": "mtd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. same point last month", "value": "31.8%", "delta": "–0.2 pts", "tone": "warn", "spark": [31.9892, 32.1742, 31.693, 31.5148, 31.8023, 32.3259, 32.0855, 31.5682, 31.8534, 31.5517, 31.4996, 31.758]}, {"section": "kpi", "id": "kpi:k2:sri:qtd", "kpi": "k2", "seg": "sri", "period": "qtd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last quarter", "value": "31.6%", "delta": "–0.4 pts", "tone": "warn", "spark": [32.3735, 32.0482, 31.3427, 32.0591, 31.6795, 32.192, 31.9573, 31.7759, 31.8433, 31.3399, 31.6242, 31.6]}, {"section": "kpi", "id": "kpi:k2:sri:ytd", "kpi": "k2", "seg": "sri", "period": "ytd", "label": "Gross margin", "src": "QuickBooks + Procore", "record": "Job cost report · 286 projects", "define": "Revenue minus direct job costs (labor, subs, materials), as a share of revenue.", "trace": "Every vendor bill is matched to a Procore job and compared to its bid.", "cmp": "vs. last year to date", "value": "31.3%", "delta": "–0.5 pts", "tone": "warn", "spark": [31.9922, 31.5364, 32.3481, 31.6616, 32.0558, 31.9605, 32.0203, 31.4876, 31.8688, 31.5551, 31.5611, 31.3472]}, {"section": "kpi", "id": "kpi:k3:all:week", "kpi": "k3", "seg": "all", "period": "week", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last week", "value": "27%", "delta": "+1 pts", "tone": "good", "spark": [25.5754, 26.5454, 26.9191, 26.8999, 26.8017, 26.2097, 26.4582, 27.0015, 26.7574, 27.203, 26.9152, 27.324]}, {"section": "kpi", "id": "kpi:k3:all:mtd", "kpi": "k3", "seg": "all", "period": "mtd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. same point last month", "value": "27%", "delta": "+2 pts", "tone": "good", "spark": [25.2835, 26.2413, 26.143, 25.6559, 25.4708, 26.6706, 26.4248, 26.2035, 26.9094, 26.8608, 27.3784, 27.135]}, {"section": "kpi", "id": "kpi:k3:all:qtd", "kpi": "k3", "seg": "all", "period": "qtd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last quarter", "value": "27%", "delta": "+3 pts", "tone": "good", "spark": [23.6842, 25.3129, 25.3516, 24.7753, 25.8544, 25.6926, 24.7056, 26.3548, 26.8259, 26.6522, 26.6312, 27.0]}, {"section": "kpi", "id": "kpi:k3:all:ytd", "kpi": "k3", "seg": "all", "period": "ytd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last year to date", "value": "27%", "delta": "+3 pts", "tone": "good", "spark": [23.258, 23.7085, 24.9516, 24.9646, 23.6913, 25.609, 24.4765, 25.3877, 25.3222, 26.1555, 26.6207, 26.784]}, {"section": "kpi", "id": "kpi:k3:cbo:week", "kpi": "k3", "seg": "cbo", "period": "week", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last week", "value": "31%", "delta": "+1 pts", "tone": "good", "spark": [30.3272, 30.416, 29.6683, 29.9883, 30.8478, 30.6911, 31.0804, 30.5241, 30.4697, 31.2972, 30.8562, 31.372]}, {"section": "kpi", "id": "kpi:k3:cbo:mtd", "kpi": "k3", "seg": "cbo", "period": "mtd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. same point last month", "value": "31%", "delta": "+2 pts", "tone": "good", "spark": [29.0629, 29.1116, 28.9081, 28.4186, 29.2706, 30.4743, 29.3727, 30.3388, 30.9508, 30.7316, 30.7793, 31.155]}, {"section": "kpi", "id": "kpi:k3:cbo:qtd", "kpi": "k3", "seg": "cbo", "period": "qtd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last quarter", "value": "31%", "delta": "+4 pts", "tone": "good", "spark": [26.3689, 26.5066, 27.6773, 28.2592, 28.8946, 29.7542, 28.3792, 29.5671, 29.9688, 30.2593, 31.1116, 31.0]}, {"section": "kpi", "id": "kpi:k3:cbo:ytd", "kpi": "k3", "seg": "cbo", "period": "ytd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last year to date", "value": "31%", "delta": "+5 pts", "tone": "good", "spark": [27.3944, 27.8888, 26.2598, 26.7022, 27.3046, 26.733, 28.9759, 28.6444, 29.4142, 30.4803, 29.7029, 30.752]}, {"section": "kpi", "id": "kpi:k3:fm:week", "kpi": "k3", "seg": "fm", "period": "week", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last week", "value": "24%", "delta": "+1 pts", "tone": "good", "spark": [23.3449, 23.5785, 24.0429, 23.8274, 24.0315, 23.889, 24.2389, 23.9722, 24.1245, 23.8052, 24.5064, 24.288]}, {"section": "kpi", "id": "kpi:k3:fm:mtd", "kpi": "k3", "seg": "fm", "period": "mtd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. same point last month", "value": "24%", "delta": "+1 pts", "tone": "good", "spark": [23.0734, 22.6179, 22.6099, 22.9804, 23.8121, 22.9925, 23.5461, 23.5953, 23.8369, 23.6772, 23.8364, 24.12]}, {"section": "kpi", "id": "kpi:k3:fm:qtd", "kpi": "k3", "seg": "fm", "period": "qtd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last quarter", "value": "24%", "delta": "+2 pts", "tone": "good", "spark": [21.356, 21.5353, 22.441, 21.7476, 22.2854, 22.9638, 23.3324, 22.8864, 23.6591, 23.1798, 23.7264, 24.0]}, {"section": "kpi", "id": "kpi:k3:fm:ytd", "kpi": "k3", "seg": "fm", "period": "ytd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last year to date", "value": "24%", "delta": "+2 pts", "tone": "good", "spark": [20.7505, 21.299, 22.2959, 22.6134, 22.2365, 22.6166, 22.5308, 22.871, 23.6409, 23.7058, 23.7029, 23.808]}, {"section": "kpi", "id": "kpi:k3:sri:week", "kpi": "k3", "seg": "sri", "period": "week", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last week", "value": "25%", "delta": "+1 pts", "tone": "good", "spark": [23.6634, 24.2141, 24.6391, 24.0009, 24.5639, 24.1093, 24.2498, 24.718, 25.1621, 24.8634, 25.3135, 25.3]}, {"section": "kpi", "id": "kpi:k3:sri:mtd", "kpi": "k3", "seg": "sri", "period": "mtd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. same point last month", "value": "25%", "delta": "+2 pts", "tone": "good", "spark": [23.4986, 23.749, 23.8056, 23.6749, 23.4968, 24.2562, 23.812, 24.4358, 24.5152, 24.8333, 24.5176, 25.125]}, {"section": "kpi", "id": "kpi:k3:sri:qtd", "kpi": "k3", "seg": "sri", "period": "qtd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last quarter", "value": "25%", "delta": "+3 pts", "tone": "good", "spark": [22.7973, 22.4041, 23.154, 22.0733, 22.683, 22.2875, 24.2183, 24.4147, 24.1289, 24.7433, 24.0501, 25.0]}, {"section": "kpi", "id": "kpi:k3:sri:ytd", "kpi": "k3", "seg": "sri", "period": "ytd", "label": "Bid-to-win rate", "src": "HubSpot", "record": "Bid pipeline · Q4", "define": "Bids won divided by bids decided this period.", "trace": "HubSpot deal stages, with lost reasons pulled from call transcripts.", "cmp": "vs. last year to date", "value": "25%", "delta": "+3 pts", "tone": "good", "spark": [20.3748, 22.7886, 21.821, 22.2649, 22.0718, 23.1416, 23.0754, 23.3102, 24.152, 23.5891, 25.0925, 24.8]}, {"section": "kpi", "id": "kpi:k4:all:week", "kpi": "k4", "seg": "all", "period": "week", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last week", "value": "$4,802", "delta": "–4%", "tone": "good", "spark": [5099.7737, 4935.893, 5011.9491, 5028.6077, 4883.1408, 4944.9578, 4915.5144, 4845.1013, 4927.6456, 4764.6501, 4825.2939, 4801.68]}, {"section": "kpi", "id": "kpi:k4:all:mtd", "kpi": "k4", "seg": "all", "period": "mtd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. same point last month", "value": "$4,836", "delta": "–7%", "tone": "good", "spark": [5325.8612, 5041.2966, 5027.001, 5274.2583, 5026.0957, 4995.3636, 5074.5695, 4906.2737, 4973.2729, 4971.4728, 4836.0634, 4835.7]}, {"section": "kpi", "id": "kpi:k4:all:qtd", "kpi": "k4", "seg": "all", "period": "qtd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last quarter", "value": "$4,860", "delta": "–12%", "tone": "good", "spark": [5625.5451, 5315.494, 5644.4966, 5459.2431, 5344.0066, 5377.9611, 5370.9629, 4992.3608, 4918.4169, 5050.5418, 4826.1697, 4860.0]}, {"section": "kpi", "id": "kpi:k4:all:ytd", "kpi": "k4", "seg": "all", "period": "ytd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last year to date", "value": "$4,899", "delta": "–14%", "tone": "good", "spark": [5947.4578, 5809.0786, 5811.2094, 5726.046, 5604.2682, 5307.3723, 5179.0775, 5078.9694, 5078.6188, 5223.2971, 4849.8605, 4898.88]}, {"section": "kpi", "id": "kpi:k4:cbo:week", "kpi": "k4", "seg": "cbo", "period": "week", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last week", "value": "$4,159", "delta": "–5%", "tone": "good", "spark": [4448.8771, 4434.8996, 4375.3204, 4235.298, 4215.7016, 4361.8475, 4224.6102, 4281.5373, 4147.5384, 4146.4495, 4183.5021, 4159.48]}, {"section": "kpi", "id": "kpi:k4:cbo:mtd", "kpi": "k4", "seg": "cbo", "period": "mtd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. same point last month", "value": "$4,189", "delta": "–8%", "tone": "good", "spark": [4650.3702, 4530.3847, 4670.6313, 4345.3461, 4562.9753, 4315.7716, 4422.9191, 4407.403, 4389.9161, 4360.6295, 4179.5848, 4188.95]}, {"section": "kpi", "id": "kpi:k4:cbo:qtd", "kpi": "k4", "seg": "cbo", "period": "qtd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last quarter", "value": "$4,210", "delta": "–14%", "tone": "good", "spark": [4962.7709, 5047.4626, 4711.8994, 4640.1241, 4633.0726, 4793.5969, 4565.3618, 4405.4778, 4522.1581, 4494.351, 4269.8541, 4210.0]}, {"section": "kpi", "id": "kpi:k4:cbo:ytd", "kpi": "k4", "seg": "cbo", "period": "ytd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last year to date", "value": "$4,244", "delta": "–16%", "tone": "good", "spark": [5290.6136, 4910.7771, 5131.2383, 5080.1929, 4872.7885, 4665.1898, 4468.1242, 4673.8385, 4669.6486, 4318.1461, 4389.3353, 4243.68]}, {"section": "kpi", "id": "kpi:k4:fm:week", "kpi": "k4", "seg": "fm", "period": "week", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last week", "value": "$5,414", "delta": "–3%", "tone": "good", "spark": [5501.7734, 5500.6189, 5671.7575, 5454.4722, 5594.0148, 5580.2478, 5417.0369, 5527.1177, 5493.7844, 5425.8293, 5420.3191, 5414.24]}, {"section": "kpi", "id": "kpi:k4:fm:mtd", "kpi": "k4", "seg": "fm", "period": "mtd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. same point last month", "value": "$5,453", "delta": "–5%", "tone": "good", "spark": [5932.8162, 5857.3524, 5572.3122, 5727.2949, 5658.4642, 5626.5274, 5615.4411, 5636.982, 5463.0118, 5552.869, 5435.0142, 5452.6]}, {"section": "kpi", "id": "kpi:k4:fm:qtd", "kpi": "k4", "seg": "fm", "period": "qtd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last quarter", "value": "$5,480", "delta": "–9%", "tone": "good", "spark": [5827.6518, 5906.9899, 5954.8891, 5927.4461, 5914.1028, 5793.8475, 5778.8687, 5624.0074, 5764.4436, 5670.5689, 5589.5718, 5480.0]}, {"section": "kpi", "id": "kpi:k4:fm:ytd", "kpi": "k4", "seg": "fm", "period": "ytd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last year to date", "value": "$5,524", "delta": "–10%", "tone": "good", "spark": [6125.7523, 6286.9937, 6272.5968, 5867.5166, 5987.6912, 5946.6302, 6021.7633, 5804.4086, 5684.4785, 5647.4776, 5457.4067, 5523.84]}, {"section": "kpi", "id": "kpi:k4:sri:week", "kpi": "k4", "seg": "sri", "period": "week", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last week", "value": "$5,088", "delta": "–4%", "tone": "good", "spark": [5400.8465, 5385.792, 5385.1708, 5218.7779, 5299.8639, 5179.0511, 5154.1317, 5098.9738, 5084.874, 5187.2685, 5084.4957, 5088.2]}, {"section": "kpi", "id": "kpi:k4:sri:mtd", "kpi": "k4", "seg": "sri", "period": "mtd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. same point last month", "value": "$5,124", "delta": "–7%", "tone": "good", "spark": [5650.3955, 5470.1876, 5463.053, 5483.5266, 5475.1989, 5280.3121, 5265.2268, 5238.8546, 5136.053, 5296.1359, 5070.0116, 5124.25]}, {"section": "kpi", "id": "kpi:k4:sri:qtd", "kpi": "k4", "seg": "sri", "period": "qtd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last quarter", "value": "$5,150", "delta": "–11%", "tone": "good", "spark": [5951.0302, 5893.082, 5813.3061, 5731.9796, 5481.3755, 5601.1353, 5474.2702, 5472.5366, 5211.4124, 5314.4445, 5330.4466, 5150.0]}, {"section": "kpi", "id": "kpi:k4:sri:ytd", "kpi": "k4", "seg": "sri", "period": "ytd", "label": "Blended CAC", "src": "QuickBooks + HubSpot", "record": "Marketing spend ÷ new clients", "define": "All sales and marketing spend divided by new clients won.", "trace": "Spend from the ledger, wins from the CRM, joined by channel.", "cmp": "vs. last year to date", "value": "$5,191", "delta": "–13%", "tone": "good", "spark": [5826.0223, 5718.3192, 6069.9696, 5581.0662, 5709.6654, 5780.6252, 5525.3049, 5514.6915, 5463.3102, 5433.6432, 5160.3276, 5191.2]}, {"section": "kpi", "id": "kpi:k5:all:week", "kpi": "k5", "seg": "all", "period": "week", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last week", "value": "19 days", "delta": "+1 days", "tone": "warn", "spark": [17.4144, 17.7918, 17.8789, 18.5513, 18.7268, 18.2616, 18.3933, 18.8922, 18.9927, 18.8716, 19.3273, 19.228]}, {"section": "kpi", "id": "kpi:k5:all:mtd", "kpi": "k5", "seg": "all", "period": "mtd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. same point last month", "value": "19 days", "delta": "+2 days", "tone": "warn", "spark": [17.1575, 17.1812, 16.3734, 17.7187, 17.3495, 18.0233, 17.4495, 18.3735, 18.3425, 18.8116, 18.9509, 19.095]}, {"section": "kpi", "id": "kpi:k5:all:qtd", "kpi": "k5", "seg": "all", "period": "qtd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last quarter", "value": "19 days", "delta": "+4 days", "tone": "warn", "spark": [14.6706, 15.8027, 14.6706, 16.2051, 16.9595, 16.9863, 17.4943, 16.8857, 17.4686, 18.1239, 17.9202, 19.0]}, {"section": "kpi", "id": "kpi:k5:all:ytd", "kpi": "k5", "seg": "all", "period": "ytd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last year to date", "value": "19 days", "delta": "+5 days", "tone": "warn", "spark": [15.7201, 13.8032, 14.5189, 15.7901, 15.0569, 17.1723, 16.4879, 16.9224, 17.1426, 17.4873, 18.6579, 18.848]}, {"section": "kpi", "id": "kpi:k5:cbo:week", "kpi": "k5", "seg": "cbo", "period": "week", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last week", "value": "17 days", "delta": "+1 days", "tone": "warn", "spark": [16.0973, 16.1446, 16.2729, 16.7038, 16.5926, 16.4731, 17.131, 16.742, 17.0003, 16.7744, 17.3544, 17.204]}, {"section": "kpi", "id": "kpi:k5:cbo:mtd", "kpi": "k5", "seg": "cbo", "period": "mtd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. same point last month", "value": "17 days", "delta": "+1 days", "tone": "warn", "spark": [15.5938, 15.4251, 16.2301, 15.7903, 16.1943, 16.5468, 16.532, 16.5701, 16.5932, 17.0852, 17.1307, 17.085]}, {"section": "kpi", "id": "kpi:k5:cbo:qtd", "kpi": "k5", "seg": "cbo", "period": "qtd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last quarter", "value": "17 days", "delta": "+2 days", "tone": "warn", "spark": [15.17, 15.062, 14.5633, 15.5422, 15.9112, 15.6495, 16.5136, 15.8125, 16.0469, 16.2701, 16.791, 17.0]}, {"section": "kpi", "id": "kpi:k5:cbo:ytd", "kpi": "k5", "seg": "cbo", "period": "ytd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last year to date", "value": "17 days", "delta": "+2 days", "tone": "warn", "spark": [14.4357, 14.8728, 15.3031, 15.283, 14.7379, 16.1191, 15.6609, 16.0114, 16.2778, 16.1297, 16.5115, 16.864]}, {"section": "kpi", "id": "kpi:k5:fm:week", "kpi": "k5", "seg": "fm", "period": "week", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last week", "value": "22 days", "delta": "+2 days", "tone": "warn", "spark": [19.8384, 20.9471, 19.845, 20.7047, 20.1372, 21.0127, 20.8127, 21.9823, 21.9139, 21.9804, 21.8586, 22.264]}, {"section": "kpi", "id": "kpi:k5:fm:mtd", "kpi": "k5", "seg": "fm", "period": "mtd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. same point last month", "value": "22 days", "delta": "+4 days", "tone": "warn", "spark": [17.6718, 19.2342, 19.6403, 19.397, 18.7822, 19.603, 19.7201, 20.8837, 20.24, 21.7947, 21.4293, 22.11]}, {"section": "kpi", "id": "kpi:k5:fm:qtd", "kpi": "k5", "seg": "fm", "period": "qtd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last quarter", "value": "22 days", "delta": "+6 days", "tone": "warn", "spark": [14.1144, 15.3763, 17.0475, 16.3165, 17.1742, 18.1191, 20.0025, 18.5848, 20.2787, 20.0286, 21.8126, 22.0]}, {"section": "kpi", "id": "kpi:k5:fm:ytd", "kpi": "k5", "seg": "fm", "period": "ytd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last year to date", "value": "22 days", "delta": "+7 days", "tone": "warn", "spark": [13.823, 16.0231, 15.7684, 17.8353, 18.1865, 18.212, 19.1477, 19.2954, 19.5995, 19.7231, 21.3299, 21.824]}, {"section": "kpi", "id": "kpi:k5:sri:week", "kpi": "k5", "seg": "sri", "period": "week", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last week", "value": "18 days", "delta": "+1 days", "tone": "warn", "spark": [17.4259, 17.1064, 17.7639, 16.9633, 17.6747, 17.9231, 17.5031, 18.0921, 17.6821, 18.1701, 17.9868, 18.216]}, {"section": "kpi", "id": "kpi:k5:sri:mtd", "kpi": "k5", "seg": "sri", "period": "mtd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. same point last month", "value": "18 days", "delta": "+2 days", "tone": "warn", "spark": [16.2977, 15.7443, 15.8686, 16.448, 17.328, 16.8045, 16.8516, 17.8553, 17.9941, 18.1329, 17.645, 18.09]}, {"section": "kpi", "id": "kpi:k5:sri:qtd", "kpi": "k5", "seg": "sri", "period": "qtd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last quarter", "value": "18 days", "delta": "+3 days", "tone": "warn", "spark": [14.9586, 14.3376, 15.391, 16.386, 15.4683, 15.3485, 16.471, 17.0917, 16.5354, 17.7948, 17.6474, 18.0]}, {"section": "kpi", "id": "kpi:k5:sri:ytd", "kpi": "k5", "seg": "sri", "period": "ytd", "label": "Avg. time-to-start", "src": "HubSpot + Procore + Airtable", "record": "Signed → first crew day", "define": "Days from contract signed to the first crew day on site.", "trace": "Signature date from HubSpot; first crew day from Airtable field logs.", "cmp": "vs. last year to date", "value": "18 days", "delta": "+3 days", "tone": "warn", "spark": [14.7309, 14.9488, 15.2579, 14.9294, 15.0207, 15.009, 15.592, 16.5143, 16.7793, 17.7679, 17.5712, 17.856]}, {"section": "kpi", "id": "kpi:k6:all:week", "kpi": "k6", "seg": "all", "period": "week", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "93", "delta": "vs. ~200 manual last qtr", "tone": "good", "spark": [36.5893, 55.9124, 57.6377, 47.9831, 55.3754, 60.7001, 74.1011, 66.3774, 79.3528, 87.0228, 88.5452, 92.508]}, {"section": "kpi", "id": "kpi:k6:all:mtd", "kpi": "k6", "seg": "all", "period": "mtd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "368", "delta": "vs. ~200 manual last qtr", "tone": "good", "spark": [194.1621, 179.2001, 207.4985, 211.8088, 266.4367, 250.652, 281.0925, 271.1411, 285.4395, 312.5646, 362.935, 367.66]}, {"section": "kpi", "id": "kpi:k6:all:qtd", "kpi": "k6", "seg": "all", "period": "qtd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "1,186", "delta": "vs. ~200 manual last qtr", "tone": "good", "spark": [661.0122, 681.0836, 735.6697, 852.7509, 809.0128, 955.0905, 904.8098, 948.9292, 1006.555, 994.043, 1196.9409, 1186.0]}, {"section": "kpi", "id": "kpi:k6:all:ytd", "kpi": "k6", "seg": "all", "period": "ytd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "4,210", "delta": "vs. ~200 manual last qtr", "tone": "good", "spark": [2236.2289, 2740.975, 3033.3829, 2913.5365, 2970.5997, 3360.1103, 3022.7436, 3619.9198, 3421.7747, 3877.2488, 4035.428, 4210.3]}, {"section": "kpi", "id": "kpi:k6:cbo:week", "kpi": "k6", "seg": "cbo", "period": "week", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "40", "delta": "vs. ~90 manual last qtr", "tone": "good", "spark": [23.1852, 16.326, 23.8578, 20.8791, 30.0297, 30.1751, 33.419, 34.5037, 31.185, 36.5146, 35.377, 39.936]}, {"section": "kpi", "id": "kpi:k6:cbo:mtd", "kpi": "k6", "seg": "cbo", "period": "mtd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "159", "delta": "vs. ~90 manual last qtr", "tone": "good", "spark": [65.8978, 80.2953, 91.9599, 85.4737, 108.2949, 101.7609, 133.9479, 130.4362, 145.624, 149.7577, 144.1914, 158.72]}, {"section": "kpi", "id": "kpi:k6:cbo:qtd", "kpi": "k6", "seg": "cbo", "period": "qtd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "512", "delta": "vs. ~90 manual last qtr", "tone": "good", "spark": [332.5549, 313.0481, 275.0833, 354.2576, 334.0698, 338.0663, 367.6384, 396.2519, 463.798, 432.0781, 465.2401, 512.0]}, {"section": "kpi", "id": "kpi:k6:cbo:ytd", "kpi": "k6", "seg": "cbo", "period": "ytd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "1,818", "delta": "vs. ~90 manual last qtr", "tone": "good", "spark": [1181.8365, 1280.7222, 1069.5333, 1328.0479, 1451.7259, 1360.1747, 1369.0777, 1563.2498, 1643.6066, 1729.6891, 1739.002, 1817.6]}, {"section": "kpi", "id": "kpi:k6:fm:week", "kpi": "k6", "seg": "fm", "period": "week", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "34", "delta": "vs. ~70 manual last qtr", "tone": "good", "spark": [17.8562, 20.933, 21.6973, 15.9815, 23.2364, 20.7436, 26.4032, 26.228, 28.0153, 28.5445, 29.3621, 33.618]}, {"section": "kpi", "id": "kpi:k6:fm:mtd", "kpi": "k6", "seg": "fm", "period": "mtd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "134", "delta": "vs. ~70 manual last qtr", "tone": "good", "spark": [68.001, 66.9503, 72.9156, 99.2373, 97.4657, 96.534, 113.1736, 96.124, 108.9725, 121.6311, 131.0574, 133.61]}, {"section": "kpi", "id": "kpi:k6:fm:qtd", "kpi": "k6", "seg": "fm", "period": "qtd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "431", "delta": "vs. ~70 manual last qtr", "tone": "good", "spark": [201.0809, 258.7978, 295.0657, 297.8214, 283.6045, 337.2273, 355.3454, 317.4444, 368.4046, 418.2401, 399.9387, 431.0]}, {"section": "kpi", "id": "kpi:k6:fm:ytd", "kpi": "k6", "seg": "fm", "period": "ytd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "1,530", "delta": "vs. ~70 manual last qtr", "tone": "good", "spark": [897.3339, 988.1235, 906.4132, 892.6904, 1099.698, 1040.9965, 1271.097, 1202.4054, 1354.2116, 1432.6833, 1540.2854, 1530.05]}, {"section": "kpi", "id": "kpi:k6:sri:week", "kpi": "k6", "seg": "sri", "period": "week", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "19", "delta": "vs. ~40 manual last qtr", "tone": "good", "spark": [10.7341, 11.2338, 10.6474, 9.839, 10.5089, 11.3905, 13.8552, 16.347, 14.6449, 16.2018, 17.323, 18.954]}, {"section": "kpi", "id": "kpi:k6:sri:mtd", "kpi": "k6", "seg": "sri", "period": "mtd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "75", "delta": "vs. ~40 manual last qtr", "tone": "good", "spark": [40.0735, 45.3816, 45.9792, 52.9754, 56.9874, 53.8315, 57.4305, 67.016, 61.0747, 71.6088, 74.3708, 75.33]}, {"section": "kpi", "id": "kpi:k6:sri:qtd", "kpi": "k6", "seg": "sri", "period": "qtd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "243", "delta": "vs. ~40 manual last qtr", "tone": "good", "spark": [108.4777, 162.2704, 141.2422, 168.1862, 145.3308, 174.3935, 166.6986, 212.5126, 208.6787, 208.7622, 239.2579, 243.0]}, {"section": "kpi", "id": "kpi:k6:sri:ytd", "kpi": "k6", "seg": "sri", "period": "ytd", "label": "Field calls logged to CRM automatically", "src": "Aircall → HubSpot", "record": "Call log sync", "define": "Field and estimator calls written to the right CRM record with no manual entry.", "trace": "Each call is transcribed, summarized and attached to its contact and deal.", "value": "863", "delta": "vs. ~40 manual last qtr", "tone": "good", "spark": [596.727, 472.4299, 592.4514, 532.5552, 700.9087, 589.3054, 635.7008, 754.8183, 719.274, 811.7261, 819.7967, 862.65]}, {"section": "sig", "id": "sig1", "status_label": "Awaiting approval", "seg": "fm", "seg_label": "Facilities Maintenance · Midwest", "risk": "Elevated", "title": "Margin compression", "signal": "Subcontractor rates up 9% on 6 Midwest jobs. Contract prices did not change.", "impact": "–$186K", "impact_label": "gross margin per quarter", "evidence": ["QuickBooks: 14 sub invoices billed at the new rate since Aug 28", "Procore: all 6 jobs are fixed-price with no escalation clause", "Aircall: vendor announced the new rate on a Sep 3 call"], "sources": ["QuickBooks", "Procore", "Aircall"], "action": "Draft variance memo to Division GM + flag 3 vendor contracts for rebid.", "action_kind": "Memo", "status": "awaiting"}, {"section": "sig", "id": "sig2", "status_label": "Awaiting approval", "seg": "all", "seg_label": "All divisions", "risk": "Elevated", "title": "Signed but not started", "signal": "8 contracts signed 21+ days ago have no kickoff scheduled.", "impact": "$1.1M", "impact_label": "revenue delayed", "evidence": ["HubSpot: 8 deals closed-won between Aug 30 and Sep 17", "Procore: no kickoff meeting or schedule on any of the 8 projects", "Email: 3 clients asked for a start date and have waited 5+ days"], "sources": ["HubSpot", "Procore", "Email"], "action": "Create kickoff tasks in Procore + scheduling emails in PM’s voice.", "action_kind": "Task", "status": "awaiting"}, {"section": "sig", "id": "sig3", "status_label": "Approved", "seg": "all", "seg_label": "All divisions", "risk": "High", "title": "Missed callbacks on open bids", "signal": "14 bid follow-up calls promised during site visits were never logged.", "impact": "$2.7M", "impact_label": "in open bids", "evidence": ["Aircall: 14 site-visit calls where an estimator promised a callback", "HubSpot: no follow-up activity on the matching 14 deals", "Bids go cold after 9 days without contact (win rate halves)"], "sources": ["Aircall", "HubSpot", "Google Sheets"], "action": "Create callback tasks for estimators + draft follow-up notes.", "action_kind": "Task", "status": "approved"}, {"section": "sig", "id": "sig4", "status_label": "Auto-executed", "seg": "all", "seg_label": "All divisions", "risk": "Elevated", "title": "Objection pattern: timeline", "signal": "“Timeline” comes up in 34% of lost bids this quarter, ahead of price.", "impact": "$3.4M", "impact_label": "lost bid value citing timeline", "evidence": ["Call intelligence: 3,912 calls tagged by objection", "Timeline is the #1 loss reason; price is #2 at 26%", "Top reps answer it with a written start-date commitment"], "sources": ["Aircall", "HubSpot"], "action": "4-step outbound sequence that addresses timeline concerns, built from top rep call language.", "action_kind": "Workflow", "status": "auto"}, {"section": "econ", "id": "econ1", "name": "Referral & repeat", "spend": "$48K", "won": "31", "rev": "$9.8M", "cac": "$1,550", "best": true}, {"section": "econ", "id": "econ2", "name": "Outbound", "spend": "$162K", "won": "29", "rev": "$7.4M", "cac": "$5,590"}, {"section": "econ", "id": "econ3", "name": "Paid search", "spend": "$214K", "won": "34", "rev": "$6.1M", "cac": "$6,290"}, {"section": "econ", "id": "econ4", "name": "Trade shows", "spend": "$131K", "won": "14", "rev": "$4.9M", "cac": "$9,360"}, {"section": "theme", "id": "theme1", "label": "Timeline", "pct": 34, "pct_display": "34%"}, {"section": "theme", "id": "theme2", "label": "Price", "pct": 26, "pct_display": "26%"}, {"section": "theme", "id": "theme3", "label": "Scope unclear", "pct": 18, "pct_display": "18%"}, {"section": "theme", "id": "theme4", "label": "Incumbent", "pct": 14, "pct_display": "14%"}, {"section": "theme", "id": "theme5", "label": "Other", "pct": 8, "pct_display": "8%"}, {"section": "bench", "id": "bench:cbo", "seg": "cbo", "name": "Commercial Build-Out", "rev": "$16.1M", "gm": "33.9%", "tts": "17 days", "risk": "Low"}, {"section": "bench", "id": "bench:fm", "seg": "fm", "name": "Facilities Maintenance", "rev": "$12.9M", "gm": "28.2%", "tts": "22 days", "risk": "Elevated"}, {"section": "bench", "id": "bench:sri", "seg": "sri", "name": "Specialty Retail Install", "rev": "$8.2M", "gm": "31.6%", "tts": "18 days", "risk": "Low"}, {"section": "bench", "id": "bench:total", "seg": "total", "name": "Company", "rev": "$37.2M", "gm": "31.4%", "tts": "19 days"}, {"section": "fc", "id": "fc41", "week": 41, "label": "Wk 41", "a": 84, "b": 100, "shade": false}, {"section": "fc", "id": "fc42", "week": 42, "label": "Wk 42", "a": 88, "b": 100, "shade": false}, {"section": "fc", "id": "fc43", "week": 43, "label": "Wk 43", "a": 91, "b": 100, "shade": false}, {"section": "fc", "id": "fc44", "week": 44, "label": "Wk 44", "a": 95, "b": 100, "shade": false}, {"section": "fc", "id": "fc45", "week": 45, "label": "Wk 45", "a": 99, "b": 100, "shade": false}, {"section": "fc", "id": "fc46", "week": 46, "label": "Wk 46", "a": 106, "b": 100, "shade": false}, {"section": "fc", "id": "fc47", "week": 47, "label": "Wk 47", "a": 118, "b": 100, "shade": true}, {"section": "fc", "id": "fc48", "week": 48, "label": "Wk 48", "a": 118, "b": 100, "shade": true}, {"section": "fc", "id": "fc49", "week": 49, "label": "Wk 49", "a": 118, "b": 100, "shade": true}, {"section": "fc", "id": "fc50", "week": 50, "label": "Wk 50", "a": 104, "b": 100, "shade": false}, {"section": "fc", "id": "fc51", "week": 51, "label": "Wk 51", "a": 92, "b": 100, "shade": false}, {"section": "fc", "id": "fc52", "week": 52, "label": "Wk 52", "a": 86, "b": 100, "shade": false}, {"section": "term", "id": "term1", "term": "Revenue", "standard": "Recognized revenue including approved change orders.", "why": "3 systems, 3 meanings → 1 standard"}, {"section": "def", "id": "def1_1", "term": "term1", "system": "QuickBooks", "definition": "Invoiced amount"}, {"section": "def", "id": "def1_2", "term": "term1", "system": "HubSpot", "definition": "Closed-won deal value"}, {"section": "def", "id": "def1_3", "term": "term1", "system": "Procore", "definition": "Contract value including change orders"}, {"section": "term", "id": "term2", "term": "Job start", "standard": "First crew day on site, from field ops logs.", "why": "3 dates for one event → 1 standard"}, {"section": "def", "id": "def2_1", "term": "term2", "system": "Procore", "definition": "First daily log entry"}, {"section": "def", "id": "def2_2", "term": "term2", "system": "HubSpot", "definition": "“Project start” field typed by sales"}, {"section": "def", "id": "def2_3", "term": "term2", "system": "Airtable", "definition": "First crew check-in on site"}, {"section": "drill", "id": "drill1", "level": "KPI", "name": "Gross margin", "value": "31.4% · –1.8 pts"}, {"section": "drill", "id": "drill2", "level": "Division", "name": "Facilities Maintenance", "value": "28.2% · –3.9 pts"}, {"section": "drill", "id": "drill3", "level": "Region", "name": "Midwest · 6 jobs", "value": "Sub rates +9%"}, {"section": "drill", "id": "drill4", "level": "Job", "name": "Job #FM-2291", "value": "Margin 22.4% vs. 31.0% bid"}, {"section": "rec", "id": "rec1", "item": "HVAC sub labor (per hr)", "bid": "$68.00", "billed": "$74.10", "chg": "+9.0%", "flag": true}, {"section": "rec", "id": "rec2", "item": "Electrical sub labor (per hr)", "bid": "$72.00", "billed": "$78.50", "chg": "+9.0%", "flag": true}, {"section": "rec", "id": "rec3", "item": "Lift rental (per day)", "bid": "$310", "billed": "$310", "chg": "Flat", "flag": false}, {"section": "rec", "id": "rec4", "item": "Materials pass-through", "bid": "$4,820", "billed": "$4,880", "chg": "+1.2%", "flag": false}];
+let DEMO_PARAMS = { industry: 'construction', segment: 'all', period: 'qtd' };
+let DEMO_RENDER = null;
+const dash = {
+  params: () => ({ ...DEMO_PARAMS }),
+  setParams: (p) => { DEMO_PARAMS = { ...DEMO_PARAMS, ...p, industry: 'construction' }; if (DEMO_RENDER) DEMO_RENDER(); },
+  data: () => ({ status: 'ok', data: DEMO_ROWS }),
+  setLink: (id) => { try { history.replaceState(null, '', '#' + id); } catch (e) {} },
+  onData: (fn) => { DEMO_RENDER = fn; fn(); }
+};
+</script>
+<script>
+const VERSIONS = [
+  { id: 'construction', label: 'Construction', sub: 'Specialty trades', built: true },
+];
+const PERIODS = [['week', 'This week'], ['mtd', 'MTD'], ['qtd', 'QTD'], ['ytd', 'YTD']];
+const NS = 'http://www.w3.org/2000/svg';
+const $ = (s) => document.getElementById(s);
+const enc = (v) => String(v).replace(/%/g, '%25').replace(/&/g, '%26').replace(/=/g, '%3D');
+const arr = (v) => { if (Array.isArray(v)) return v; if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return v.split(/\s*[,;]\s*/); } } return []; };
+const yes = (v) => v === true || v === 'true' || v === 1 || v === '1';
+function h(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+let VID = 'construction';
+function mark(el, row, field) {
+  el.setAttribute('data-source', VID); el.setAttribute('data-field', field); el.setAttribute('data-where', 'id=' + enc(row.id));
+  el.textContent = row[field] == null ? '' : row[field]; return el;
+}
+function hm(tag, cls, row, field) { return mark(h(tag, cls), row, field); }
+
+/* Approval state lives in memory for the demo session */
+const actions = {};
+let openKpi = null, openAnchor = 0, listenOpen = false;
+
+const tabs = $('ce-tabs');
+function drawTabs() {
+  tabs.replaceChildren(...VERSIONS.map((v) => {
+    const b = h('button', 'ce-tab'); b.setAttribute('role', 'tab'); b.id = 'tab-' + v.id;
+    b.setAttribute('aria-selected', String(v.id === VID));
+    b.append(h('span', 't1', v.label));
+    const t2 = h('span', 't2', v.sub); if (!v.built) { t2.append(h('span', 'ce-q', 'Queued')); b.disabled = true; b.title = 'Queued'; }
+    b.append(t2);
+    if (v.built) b.addEventListener('click', () => { closeDrawer(); dash.setParams({ industry: v.id, segment: 'all' }); dash.setLink('tab-' + v.id); });
+    return b;
+  }));
+}
+document.querySelectorAll('.ce-step').forEach((b) => b.addEventListener('click', () => { const t = $(b.dataset.go); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); dash.setLink(t.id); }));
+$('ce-listen').addEventListener('click', (e) => { listenOpen = true; openDrawer(null, e.currentTarget); });
+
+function spark(box, row) {
+  box.replaceChildren(); box.setAttribute('data-source', VID);
+  const vals = arr(row.spark).map(Number).filter((n) => Number.isFinite(n)); if (vals.length < 2) return;
+  const W = Math.max(120, box.clientWidth || 160), H = 34;
+  const x = d3.scaleLinear([0, vals.length - 1], [2, W - 4]);
+  const ext = d3.extent(vals); const pad = (ext[1] - ext[0]) * 0.15 || 1;
+  const y = d3.scaleLinear([ext[0] - pad, ext[1] + pad], [H - 3, 3]);
+  const col = row.tone === 'warn' ? '#E09A1A' : row.tone === 'good' ? '#1FAA59' : '#0040A0';
+  const svg = d3.select(box).append('svg').attr('width', '100%').attr('height', H).attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'none');
+  svg.append('path').attr('d', d3.area().x((d, i) => x(i)).y0(H).y1((d) => y(d))(vals)).attr('fill', col).attr('opacity', 0.08);
+  svg.append('path').attr('d', d3.line().x((d, i) => x(i)).y((d) => y(d))(vals)).attr('fill', 'none').attr('stroke', col).attr('stroke-width', 2).attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round').attr('vector-effect', 'non-scaling-stroke');
+  svg.append('circle').attr('cx', x(vals.length - 1)).attr('cy', y(vals[vals.length - 1])).attr('r', 2.6).attr('fill', col);
+}
+
+function drawForecast(box, rows, meta) {
+  box.replaceChildren(); box.setAttribute('data-source', VID);
+  if (!rows.length) return;
+  const W = Math.max(300, box.clientWidth || 560), H = 250, m = { t: 26, r: 14, b: 28, l: 10 };
+  const pre = meta.fc_prefix || '', suf = meta.fc_suffix || '', dec = meta.fc_dec ?? 1;
+  const fmt = (v) => pre + d3.format(`,.${dec}f`)(v) + suf;
+  rows = rows.map((r) => ({ ...r, a: Number(r.a), b: Number(r.b), shade: yes(r.shade) }));
+  const vals = rows.flatMap((r) => [r.a, r.b]);
+  const lo = d3.min(vals), hi = d3.max(vals), span = hi - lo || 1;
+  const y = d3.scaleLinear([lo - span * 0.25, hi + span * 0.15], [H - m.b, m.t]).nice();
+  const ticks = y.ticks(4);
+  m.l = 10 + d3.max(ticks, (t) => fmt(t).length) * 6.6;
+  const x = d3.scalePoint(rows.map((r) => r.label), [m.l + 8, W - m.r - 6]);
+  const step = x.step();
+  const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).style('display', 'block');
+  const sh = rows.filter((r) => r.shade);
+  if (sh.length) {
+    const x0 = x(sh[0].label) - step / 2, x1 = x(sh[sh.length - 1].label) + step / 2;
+    svg.append('rect').attr('x', x0).attr('y', m.t - 4).attr('width', x1 - x0).attr('height', H - m.b - m.t + 4).attr('fill', '#F2B740').attr('opacity', 0.18).attr('rx', 4);
+    svg.append('text').attr('x', (x0 + x1) / 2).attr('y', m.t - 10).attr('text-anchor', 'middle').attr('font-size', 11).attr('font-weight', 700).attr('fill', '#B86E00').text(meta.shade_label);
+  }
+  const g = svg.append('g');
+  ticks.forEach((t) => {
+    g.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', '#E5E9F2');
+    g.append('text').attr('x', m.l - 6).attr('y', y(t)).attr('dy', '0.32em').attr('text-anchor', 'end').attr('font-size', 11).attr('fill', '#5B6385').text(fmt(t));
+  });
+  const every = W < 420 ? 3 : W < 560 ? 2 : 1;
+  rows.forEach((r, i) => { if (i % every === 0) g.append('text').attr('x', x(r.label)).attr('y', H - 8).attr('text-anchor', 'middle').attr('font-size', 11).attr('fill', '#5B6385').text(r.label); });
+  const line = (k) => d3.line().x((r) => x(r.label)).y((r) => y(r[k]));
+  svg.append('path').attr('d', line('b')(rows)).attr('fill', 'none').attr('stroke', '#7A84A8').attr('stroke-width', 2).attr('stroke-dasharray', '5 4');
+  svg.append('path').attr('d', line('a')(rows)).attr('fill', 'none').attr('stroke', '#0040A0').attr('stroke-width', 2.5).attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round');
+  svg.selectAll('circle.a').data(rows).join('circle').attr('cx', (r) => x(r.label)).attr('cy', (r) => y(r.a)).attr('r', 3).attr('fill', (r) => r.shade ? '#E09A1A' : '#0040A0');
+  const tip = h('div', 'ce-tip'); tip.hidden = true; box.append(tip);
+  const rule = svg.append('line').attr('y1', m.t).attr('y2', H - m.b).attr('stroke', '#9FB4E6').attr('opacity', 0);
+  svg.selectAll('rect.hit').data(rows).join('rect').attr('x', (r) => x(r.label) - step / 2).attr('y', m.t).attr('width', step).attr('height', H - m.b - m.t).attr('fill', 'transparent')
+    .on('mousemove', (ev, r) => {
+      rule.attr('x1', x(r.label)).attr('x2', x(r.label)).attr('opacity', 1);
+      tip.replaceChildren(h('div', 'w', r.label + (r.shade ? ' · ' + meta.shade_label : '')), h('div', null, meta.fc_a + ': ' + fmt(r.a)), h('div', null, meta.fc_b + ': ' + fmt(r.b)));
+      tip.hidden = false;
+      const bw = box.clientWidth, sx = x(r.label) * bw / W, tw = tip.offsetWidth;
+      tip.style.left = Math.min(Math.max(0, sx + 12), bw - tw) + 'px'; tip.style.top = (y(r.a) * bw / W - 10) + 'px';
+    })
+    .on('mouseleave', () => { tip.hidden = true; rule.attr('opacity', 0); });
+}
+
+function wave(n) {
+  const w = h('div', 'ce-wave');
+  for (let i = 0; i < n; i++) { const s = h('span', i < n * 0.38 ? 'hi' : ''); s.style.height = (4 + Math.round(20 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.45)))) + 'px'; w.append(s); }
+  return w;
+}
+
+function quoteBlock(meta, mrow) {
+  const q = h('div', 'ce-quote');
+  const hd = h('div', 'ce-quote-hd'); const p = h('div', 'ce-play');
+  p.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 1.5v9l7.5-4.5z" fill="#fff"/></svg>';
+  hd.append(p, wave(46)); q.append(hd);
+  q.append(hm('div', 'ce-quote-t', mrow, 'quote_text'));
+  const m = h('div', 'ce-quote-m'); m.append(hm('b', null, mrow, 'quote_speaker'), document.createTextNode(' · '), hm('span', null, mrow, 'quote_meta')); q.append(m);
+  if (mrow.quote_note) q.append(hm('div', 'ce-quote-m', mrow, 'quote_note'));
+  return q;
+}
+
+function drillExample(box, D) {
+  const mrow = D.meta;
+  box.replaceChildren();
+  box.append(h('div', 'ce-lbl', 'Trace'), hm('div', 'ce-card-t', mrow, 'drill_title'));
+  const cr = h('div', 'ce-crumbs');
+  D.drill.forEach((r, i) => {
+    if (i) cr.append(h('span', 'ce-sep', '→'));
+    const c = h('div', 'ce-crumb' + (i === D.drill.length - 1 ? ' last' : ''));
+    c.append(hm('div', 'ce-crumb-l', r, 'level'), hm('div', 'ce-crumb-v', r, 'name'));
+    if (r.value) c.append(hm('div', 'ce-crumb-s', r, 'value'));
+    cr.append(c);
+  });
+  box.append(cr);
+  const grid = h('div', 'ce-drill-grid');
+  const left = h('div'); left.append(hm('div', 'ce-lbl', mrow, 'rec_title'));
+  const cols = arr(mrow.rec_cols);
+  const t = h('table', 'ce-table'); t.setAttribute('data-source', VID); t.setAttribute('data-row-key', 'id');
+  const tr = h('tr'); cols.forEach((c, i) => { const th = h('th', i ? 'num' : '', c.label); th.setAttribute('data-field', c.field); tr.append(th); });
+  { const hd = h('thead'); hd.append(tr); t.append(hd); }
+  const tb = h('tbody'); D.rec.forEach((r) => { const row = h('tr', yes(r.flag) ? 'sel' : ''); row.dataset.key = r.id; cols.forEach((c, i) => row.append(h('td', i ? 'num' : '', r[c.field]))); tb.append(row); });
+  t.append(tb); const tw = h('div', 'ce-tablewrap'); tw.append(t); left.append(tw, hm('div', 'ce-recmeta', mrow, 'rec_meta'));
+  const right = h('div'); right.append(h('div', 'ce-lbl', 'Linked call · transcript snippet'), quoteBlock(mrow, mrow));
+  grid.append(left, right); box.append(grid);
+}
+
+function closeDrawer() { openKpi = null; listenOpen = false; $('ce-overlay').replaceChildren(); }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (openKpi || listenOpen)) closeDrawer(); });
+function openDrawer(kpi, anchor) {
+  openKpi = kpi; if (kpi) listenOpen = false;
+  const root = $('ce'); const r = anchor.getBoundingClientRect(), rr = root.getBoundingClientRect();
+  openAnchor = Math.max(0, r.top - rr.top - 20);
+  render();
+}
+function renderDrawer(D, P) {
+  const ov = $('ce-overlay'); ov.replaceChildren();
+  if (!openKpi && !listenOpen) return;
+  const scrim = h('div', 'ce-scrim'); scrim.addEventListener('click', closeDrawer);
+  const dr = h('div', 'ce-drawer'); dr.setAttribute('role', 'dialog'); dr.setAttribute('aria-label', 'Drill to source'); dr.id = 'drawer';
+  const ceH = $('ce').clientHeight; dr.style.top = Math.min(openAnchor, Math.max(0, ceH - 640)) + 'px';
+  const x = h('button', 'ce-drawer-x', '×'); x.setAttribute('aria-label', 'Close'); x.addEventListener('click', closeDrawer); dr.append(x);
+  dr.append(h('div', 'ce-eyebrow', 'Drill to source'));
+  const mrow = D.meta;
+  if (listenOpen) {
+    dr.append(h('div', 'ce-h2', 'Example call'), h('div', 'ce-sub', 'Each call is transcribed, tagged by theme and linked to the record it is about.'));
+    const w = h('div'); w.style.marginTop = '14px'; w.append(quoteBlock(mrow, mrow)); dr.append(w);
+    const tags = h('div', 'ce-srcchips'); D.themes.slice(0, 3).forEach((t) => tags.append(hm('span', 'ce-srcchip', t, 'label'))); dr.append(tags);
+  } else {
+    const k = D.kpi.find((r) => r.kpi === openKpi && r.seg === P.segment && r.period === P.period);
+    if (!k) { closeDrawer(); return; }
+    const hd = h('div', 'ce-h2'); hd.append(hm('span', null, k, 'label'), document.createTextNode(': '), hm('span', null, k, 'value')); dr.append(hd);
+    const d = h('div', 'ce-kpi-d'); d.style.marginTop = '4px'; d.append(hm('span', 'ce-chip ' + k.tone, k, 'delta'), hm('span', null, k, 'cmp')); dr.append(d);
+    if (openKpi === mrow.drill_kpi) { const b = h('div'); b.style.marginTop = '8px'; drillExample(b, D); dr.append(b); }
+    else {
+      const seg = D.segs.find((s) => s.key === P.segment);
+      const cr = h('div', 'ce-crumbs');
+      const add = (l, el, last) => { const c = h('div', 'ce-crumb' + (last ? ' last' : '')); c.append(h('div', 'ce-crumb-l', l), el); cr.append(c); };
+      add('KPI', hm('div', 'ce-crumb-v', k, 'label'));
+      cr.append(h('span', 'ce-sep', '→')); add('Segment', seg ? hm('div', 'ce-crumb-v', seg, 'label') : h('div', 'ce-crumb-v', 'All'));
+      cr.append(h('span', 'ce-sep', '→')); add('Source', hm('div', 'ce-crumb-v', k, 'src'));
+      cr.append(h('span', 'ce-sep', '→')); add('Record', hm('div', 'ce-crumb-v', k, 'record'), true);
+      dr.append(cr);
+      const t = h('div', 'ce-quote'); t.append(h('div', 'ce-lbl', 'How this number is built'), hm('div', null, k, 'define'), hm('div', 'ce-quote-m', k, 'trace'));
+      dr.append(t);
+      const more = h('button', 'ce-btn link', 'See the full example trace ↓'); more.style.marginTop = '10px';
+      more.addEventListener('click', () => { closeDrawer(); $('drill').scrollIntoView({ behavior: 'smooth' }); dash.setLink('drill'); });
+      dr.append(more);
+    }
+  }
+  ov.append(scrim, dr);
+}
+
+const ICONS = {
+  Memo: '<path d="M7 3h7l4 4v14H7z M14 3v4h4 M10 12h6 M10 16h6"/>',
+  Task: '<path d="M5 12l4 4 10-10"/>',
+  Workflow: '<path d="M5 6h6v4H5z M13 14h6v4h-6z M8 10v4h5"/>',
+  Email: '<path d="M3 6h18v12H3z M3 6l9 7 9-7"/>',
+};
+function actionIcon(kind) { const d = h('div', 'ce-action-ic'); d.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[kind] || ICONS.Task}</svg>`; return d; }
+const STATUS = { awaiting: 'Awaiting approval', approved: 'Approved', auto: 'Auto-executed', dismissed: 'Dismissed' };
+
+function signalCard(s, P, D) {
+  const key = VID + ':' + s.id;
+  const st = actions[key] || (actions[key] = { status: s.status, text: null, editing: false, prev: s.status });
+  const card = h('article', 'ce-sig st-' + st.status); card.id = 'sig-' + s.id;
+  if (P.segment !== 'all' && s.seg !== 'all' && s.seg !== P.segment) card.classList.add('dim');
+  const top = h('div', 'ce-sig-top'); const tags = h('div', 'ce-sig-tags');
+  tags.append(hm('span', 'ce-risk ' + s.risk, s, 'risk'), hm('span', 'ce-tag', s, 'seg_label'));
+  top.append(tags);
+  const sc = h('span', 'ce-status ' + st.status);
+  if (st.status === s.status) mark(sc, s, 'status_label'); else sc.textContent = STATUS[st.status];
+  top.append(sc); card.append(top);
+  card.append(hm('div', 'ce-sig-title', s, 'title'), hm('div', 'ce-sig-text', s, 'signal'));
+  const imp = h('div', 'ce-impact ' + s.risk); imp.append(hm('span', 'ce-impact-v', s, 'impact'), hm('span', 'ce-impact-l', s, 'impact_label')); card.append(imp);
+  const ev = h('div'); ev.append(h('div', 'ce-lbl', 'Evidence'));
+  const ul = h('ul', 'ce-ev'); ul.setAttribute('data-source', VID); arr(s.evidence).forEach((t) => ul.append(h('li', null, t))); ev.append(ul);
+  const chips = h('div', 'ce-srcchips'); arr(s.sources).forEach((t) => chips.append(h('span', 'ce-srcchip', t))); ev.append(chips); card.append(ev);
+  const act = h('div', 'ce-action'); act.append(actionIcon(s.action_kind));
+  const ab = h('div'); ab.style.flex = '1'; ab.style.minWidth = '0';
+  const al = h('div', 'ce-lbl'); al.append(document.createTextNode('Staged action · '), hm('span', null, s, 'action_kind')); ab.append(al);
+  if (st.editing) {
+    const ta = h('textarea'); ta.value = st.text ?? s.action; ta.setAttribute('aria-label', 'Edit staged action');
+    ta.addEventListener('input', () => { st.text = ta.value; }); ab.append(ta);
+    setTimeout(() => { if (document.activeElement === document.body) ta.focus(); }, 0);
+  } else if (st.text != null && st.text !== s.action) { ab.append(h('div', 'ce-action-t', st.text)); }
+  else ab.append(hm('div', 'ce-action-t', s, 'action'));
+  act.append(ab); card.append(act);
+  const btns = h('div', 'ce-btns');
+  const b = (label, cls, fn) => { const x = h('button', 'ce-btn ' + cls, label); x.addEventListener('click', fn); btns.append(x); return x; };
+  if (st.status === 'awaiting') {
+    if (st.editing) {
+      b('Save changes', 'approve', () => { st.editing = false; render(); });
+      b('Cancel', 'ghost', () => { st.editing = false; st.text = null; render(); });
+    } else {
+      b('Approve', 'approve', () => { st.prev = st.status; st.status = 'approved'; st.just = true; render(); });
+      b('Edit', '', () => { st.editing = true; render(); });
+      b('Dismiss', 'ghost', () => { st.prev = st.status; st.status = 'dismissed'; render(); });
+    }
+  } else {
+    const done = h('div', 'ce-done');
+    if (st.status === 'approved') done.append(h('span', null, st.just ? '✓ Approved by you just now. Action queued.' : '✓ Approved by ' + (D.meta.approver || 'owner') + '. Action complete.'));
+    if (st.status === 'auto') done.append(h('span', null, '⚡ Ran under an auto-run rule. Logged for review.'));
+    if (st.status === 'dismissed') done.append(h('span', null, 'Dismissed. The agent will keep watching this signal.'));
+    if (st.status !== s.status) { const u = h('button', 'ce-btn link', 'Undo'); u.addEventListener('click', () => { st.status = st.prev; st.just = false; render(); }); done.append(u); }
+    btns.append(done);
+  }
+  card.append(btns);
+  return card;
+}
+
+function render() {
+  const P = { industry: 'construction', segment: 'all', period: 'qtd', ...dash.params() };
+  const v = VERSIONS.find((x) => x.id === P.industry && x.built) || VERSIONS[0];
+  VID = v.id; drawTabs();
+  const res = dash.data(VID);
+  const fillIds = ['ce-srcs', 'ce-kpis', 'ce-sigs', 'ce-econ', 'ce-themes', 'ce-bench', 'ce-fc', 'ce-terms', 'ce-drill'];
+  if (res.status !== 'ok') {
+    const msg = res.status === 'error' || res.status === 'missing' ? 'Failed to load' : null;
+    fillIds.forEach((id) => { const el = $(id); el.replaceChildren(); el.setAttribute('data-source', VID); if (msg) el.append(h('div', 'ce-fail', msg)); else el.classList.add('dash-skeleton'); });
+    $('ce-overlay').replaceChildren();
+    return;
+  }
+  fillIds.forEach((id) => $(id).classList.remove('dash-skeleton'));
+  const rows = res.data;
+  const by = (s) => rows.filter((r) => r.section === s);
+  const D = { meta: rows.find((r) => r.section === 'meta'), segs: by('seg'), src: by('src'), kpi: by('kpi'), sig: by('sig'), econ: by('econ'), estat: by('estat'), themes: by('theme'), bench: by('bench'), fc: by('fc'), terms: by('term'), defs: by('def'), drill: by('drill'), rec: by('rec') };
+  const M = D.meta;
+  if (!D.segs.some((s) => s.key === P.segment)) P.segment = 'all';
+
+  mark($('ce-company'), M, 'company'); mark($('ce-subtitle'), M, 'subtitle'); mark($('ce-synced'), M, 'synced');
+  const note = $('ce-note'); if (M.note) { note.hidden = false; mark(note, M, 'note'); } else { note.hidden = true; note.removeAttribute('data-source'); }
+
+  const segs = $('ce-segs'); segs.replaceChildren(...D.segs.map((s) => {
+    const b = hm('button', null, s, 'label'); b.setAttribute('aria-pressed', String(s.key === P.segment)); if (s.detail) b.title = s.detail;
+    b.addEventListener('click', () => dash.setParams({ segment: s.key })); return b;
+  }));
+  const per = $('ce-periods'); per.replaceChildren(...PERIODS.map(([k, l]) => {
+    const b = h('button', null, l); b.setAttribute('aria-pressed', String(k === P.period)); b.addEventListener('click', () => dash.setParams({ period: k })); return b;
+  }));
+
+  // 01 Connect
+  $('ce-srcs').replaceChildren(...D.src.map((s) => {
+    const t = h('div', 'ce-src'); const top = h('div', 'ce-src-top');
+    const ic = h('div', 'ce-src-ic', s.name.replace(/[^A-Za-z ]/g, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase());
+    const nm = h('div'); nm.append(hm('div', 'ce-src-name', s, 'name'), hm('div', 'ce-src-type', s, 'type'));
+    top.append(ic, nm); t.append(top, hm('div', 'ce-src-rec', s, 'records'));
+    const sy = h('div', 'ce-src-sync'); sy.append(h('span', 'ce-dot'), hm('span', null, s, 'sync')); t.append(sy);
+    return t;
+  }));
+  const cs = $('ce-connect-sum'); cs.replaceChildren(h('span', 'ce-dot'), hm('span', null, M, 'connect_summary'));
+
+  // 03 See
+  const kpis = D.kpi.filter((r) => r.seg === P.segment && r.period === P.period);
+  $('ce-kpis').replaceChildren(...kpis.map((k) => {
+    const t = h('button', 'ce-kpi ' + k.tone); t.id = 'kpi-' + k.kpi;
+    t.append(hm('div', 'ce-kpi-l', k, 'label'), hm('div', 'ce-kpi-v', k, 'value'));
+    const d = h('div', 'ce-kpi-d'); d.append(hm('span', 'ce-chip ' + k.tone, k, 'delta')); if (k.cmp) d.append(hm('span', null, k, 'cmp')); t.append(d);
+    const steps = arr(k.steps); const stepN = Number(k.step);
+    if (steps.length) {
+      const st = h('div'); const bar = h('div', 'ce-steps'); bar.setAttribute('data-source', VID);
+      steps.forEach((x, i) => bar.append(h('span', i < stepN ? 'on' : i === stepN ? 'cur' : '')));
+      const lab = h('div', 'ce-steps-l'); steps.forEach((x) => lab.append(h('span', null, x)));
+      st.append(bar, lab); t.append(st);
+    } else { const sp = h('div', 'ce-spark'); t.append(sp); requestAnimationFrame(() => spark(sp, k)); }
+    if (k.note) t.append(hm('div', 'ce-kpi-note', k, 'note'));
+    t.append(h('span', 'ce-view', 'View source →'));
+    t.addEventListener('click', () => openDrawer(k.kpi, t));
+    return t;
+  }));
+
+  // 04 Act
+  const order = [...D.sig].sort((a, b) => (P.segment !== 'all') * ((b.seg === P.segment) - (a.seg === P.segment)));
+  $('ce-sigs').replaceChildren(...order.map((s) => signalCard(s, P, D)));
+  const cnt = { awaiting: 0, approved: 0, auto: 0 };
+  D.sig.forEach((s) => { const st = actions[VID + ':' + s.id]; if (cnt[st.status] != null) cnt[st.status]++; });
+  $('ce-counts').replaceChildren(...[['awaiting', 'Awaiting approval'], ['approved', 'Approved'], ['auto', 'Auto-executed']].map(([k, l]) => { const c = h('div', 'ce-count'); c.append(h('b', null, String(cnt[k])), document.createTextNode(l)); return c; }),
+    (() => { const c = h('div', 'ce-count'); c.append(hm('b', null, M, 'act_total'), hm('span', null, M, 'act_total_label')); return c; })());
+
+  // Economics
+  mark($('ce-econ-t'), M, 'econ_title'); mark($('ce-econ-n'), M, 'econ_note');
+  const eb = $('ce-econ'); eb.replaceChildren();
+  if (M.econ_kind === 'timeline') {
+    const tl = h('div', 'ce-timeline'); tl.setAttribute('data-source', VID);
+    D.econ.forEach((r) => { const it = h('div', 'ce-tl ' + (r.state || '')); const rail = h('div', 'ce-tl-rail'); rail.append(h('div', 'ce-tl-dot'));
+      const bd = h('div', 'ce-tl-body'); bd.append(hm('div', 'ce-tl-t', r, 'title'), hm('div', 'ce-tl-s', r, 'desc'));
+      it.append(hm('div', 'ce-tl-day', r, 'day'), rail, bd); tl.append(it); });
+    eb.append(tl);
+  } else {
+    const cols = arr(M.econ_cols); const tw = h('div', 'ce-tablewrap'); const t = h('table', 'ce-table'); t.setAttribute('data-source', VID); t.setAttribute('data-row-key', 'id');
+    const tr = h('tr'); cols.forEach((c, i) => { const th = h('th', i ? 'num' : '', c.label); th.setAttribute('data-field', c.field); tr.append(th); }); { const hd = h('thead'); hd.append(tr); t.append(hd); }
+    const tb = h('tbody'); D.econ.forEach((r) => { const row = h('tr', yes(r.best) ? 'ce-best' : ''); row.dataset.key = r.id; cols.forEach((c, i) => row.append(h('td', i ? 'num' : '', r[c.field]))); tb.append(row); });
+    t.append(tb); tw.append(t); eb.append(tw);
+  }
+  if (D.estat.length) { const st = h('div', 'ce-stats'); st.style.marginTop = '12px'; D.estat.forEach((r) => { const c = h('div', 'ce-stat'); c.append(hm('b', null, r, 'value'), hm('span', null, r, 'label')); st.append(c); }); eb.append(st); }
+
+  // Calls
+  mark($('ce-calls-n'), M, 'calls_count'); mark($('ce-calls-l'), M, 'calls_label'); mark($('ce-themes-t'), M, 'themes_title');
+  const max = d3.max(D.themes, (r) => Number(r.pct)) || 1;
+  $('ce-themes').replaceChildren(...D.themes.map((r) => { const b = h('div', 'ce-bar'); const tr = h('div', 'ce-bar-track'); tr.setAttribute('data-source', VID); const f = h('div', 'ce-bar-fill'); f.style.width = (Number(r.pct) / max * 100) + '%'; tr.append(f);
+    b.append(hm('span', null, r, 'label'), tr, hm('span', 'ce-bar-p', r, 'pct_display')); return b; }));
+
+  // Benchmarking
+  mark($('ce-bench-t'), M, 'bench_title'); mark($('ce-bench-n'), M, 'bench_note');
+  { const cols = arr(M.bench_cols); const t = h('table', 'ce-table'); t.setAttribute('data-source', VID); t.setAttribute('data-row-key', 'id');
+    const tr = h('tr'); cols.forEach((c, i) => { const th = h('th', i && c.field !== 'risk' ? 'num' : '', c.label); th.setAttribute('data-field', c.field); tr.append(th); }); { const hd = h('thead'); hd.append(tr); t.append(hd); }
+    const tb = h('tbody'); D.bench.forEach((r) => { const row = h('tr', (r.seg === 'total' ? 'total' : '') + (r.seg === P.segment ? ' sel' : '')); row.dataset.key = r.id;
+      cols.forEach((c, i) => { const td = h('td', i && c.field !== 'risk' ? 'num' : ''); if (c.field === 'risk' && r.risk) td.append(h('span', 'ce-risk ' + r.risk, r.risk)); else td.textContent = r[c.field] ?? ''; row.append(td); });
+      if (r.seg !== 'total') { row.style.cursor = 'pointer'; row.addEventListener('click', () => dash.setParams({ segment: r.seg === P.segment ? 'all' : r.seg })); }
+      tb.append(row); });
+    t.append(tb); $('ce-bench').replaceChildren(t); }
+
+  // Forecast
+  mark($('ce-fc-t'), M, 'fc_title'); mark($('ce-fc-n'), M, 'fc_note');
+  const leg = $('ce-fc-leg'); leg.replaceChildren();
+  [['', 'fc_a'], ['b', 'fc_b'], ['s', 'shade_label']].forEach(([c, f]) => { const s = h('span'); s.append(h('i', c)); s.append(hm('span', null, M, f)); leg.append(s); });
+  drawForecast($('ce-fc'), D.fc, M);
+
+  // 02 Understand
+  $('ce-terms').replaceChildren(...D.terms.map((t) => {
+    const c = h('div', 'ce-card'); const n = h('div', 'ce-term-n'); n.append(document.createTextNode('“'), hm('span', null, t, 'term'), document.createTextNode('”')); c.append(n);
+    const defs = h('div', 'ce-defs'); D.defs.filter((d) => d.term === t.id).forEach((d) => { const r = h('div', 'ce-def'); r.append(hm('div', 'ce-def-sys', d, 'system'), hm('div', 'ce-def-txt', d, 'definition')); defs.append(r); });
+    c.append(defs, h('div', 'ce-arrow', 'Resolved to one standard'));
+    const std = h('div', 'ce-std'); std.append(h('div', 'ce-lbl', 'Standard definition'), hm('div', 'ce-std-t', t, 'standard')); if (t.why) std.append(hm('div', 'ce-std-w', t, 'why')); c.append(std);
+    return c;
+  }));
+  const dsum = $('ce-defs-sum'); dsum.replaceChildren(h('span', 'ce-dot'), hm('span', null, M, 'defs_summary'));
+
+  // Drill example
+  drillExample($('ce-drill'), D);
+  renderDrawer(D, P);
+}
+
+dash.onData(render);
+const named = document.getElementById(location.hash.slice(1));
+if (named) setTimeout(() => named.scrollIntoView(), 50);
+</script>
+</main>
+</body>
+</html>
